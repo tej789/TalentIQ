@@ -1,0 +1,21 @@
+<!-- Add this inline script to index.html BEFORE any other scripts -->
+<!-- This prevents theme flash by applying saved theme synchronously -->
+<script>
+  (function() {
+    // Apply theme immediately before React loads
+    const savedTheme = localStorage.getItem('theme');
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const isDark = savedTheme ? savedTheme === 'dark' : (prefersDark || true);
+    
+    if (isDark) {
+      document.documentElement.classList.add('dark');
+      document.body.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+      document.body.classList.remove('dark');
+    }
+    
+    // Add loading state
+    document.documentElement.style.visibility = 'visible';
+  })();
+</script>
