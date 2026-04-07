@@ -43,11 +43,11 @@ function getSessionRoom(sessionId) {
 
 export function initializeSocket(httpServer) {
   io = new Server(httpServer, {
-    cors: {
-      origin: ENV.CLIENT_URL,
-      methods: ["GET", "POST"],
-      credentials: true,
-    },
+   cors: {
+  origin: true,   // allow all origins (temporary fix)
+  methods: ["GET", "POST"],
+  credentials: true,
+},
     pingTimeout: 60000,
     pingInterval: 25000,
   });
