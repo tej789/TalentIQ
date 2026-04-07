@@ -53,6 +53,9 @@ app.use("/api/judge", judgeRoutes);
 app.use("/api/profile", profileRoutes);
 app.use("/api/preferences", preferencesRoutes);
 app.use("/api/activity", activityRoutes);
+app.get("/", (req, res) => {
+  res.send("API is running...");
+});
 app.get("/test", (req, res) => {
   res.json({ message: "Backend working perfectly" });
 });
@@ -61,13 +64,13 @@ app.get("/health", (req, res) => {
 });
 
 // make our app ready for deployment
-if (ENV.NODE_ENV === "production") {
-  app.use(express.static(path.join(__dirname, "../frontend/dist")));
+// if (ENV.NODE_ENV === "production") {
+//   app.use(express.static(path.join(__dirname, "../frontend/dist")));
 
-  app.get("/{*any}", (req, res) => {
-    res.sendFile(path.join(__dirname, "../frontend", "dist", "index.html"));
-  });
-}
+//   app.get("/{*any}", (req, res) => {
+//     res.sendFile(path.join(__dirname, "../frontend", "dist", "index.html"));
+//   });
+// }
 
 // Catch unhandled errors
 process.on('uncaughtException', (error) => {
