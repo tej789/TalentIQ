@@ -31,8 +31,12 @@ const __dirname = path.resolve();
 // middleware
 app.use(express.json());
 // credentials:true meaning?? => server allows a browser to include cookies on request
+// app.use(cors({
+//   origin: true,   // allow all (temporary)
+//   credentials: true
+// }));
 app.use(cors({
-  origin: true,   // allow all (temporary)
+  origin: ENV.CLIENT_URL,
   credentials: true
 }));
 
