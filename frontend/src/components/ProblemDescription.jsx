@@ -39,7 +39,7 @@ function ProblemDescription({ problem, currentProblemId, onProblemChange, allPro
             value={currentProblemId}
             onChange={(e) => onProblemChange(e.target.value)}
           >
-            {allProblems.map((p) => (
+            {(allProblems || []).map((p) => (
               <option key={p.id} value={p.id}>
                 {p.title} - {p.difficulty}
               </option>

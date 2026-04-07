@@ -84,7 +84,7 @@ function CreateSessionModal({
                   {loadingProblems ? "Loading problems…" : "Choose a coding problem…"}
                 </option>
 
-                {problems.map((problem) => (
+                {(problems || []).map((problem) => (
                   <option key={problem._id} value={problem.title}>
                     {problem.title} ({problem.difficulty})
                   </option>

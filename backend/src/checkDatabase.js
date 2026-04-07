@@ -52,7 +52,7 @@ async function checkDatabase() {
       console.log("   Please login to your app to create a user.");
     }
 
-    if (problems.length === 0) {
+    if ((problems?.length || 0) === 0) {
       console.log("\\n⚠️  WARNING: No problems found in database!");
       console.log("   Run: npm run seed to add sample problems");
     }

@@ -34,6 +34,12 @@ function CodeEditorPanel({
   // Track if models have been initialized
   const modelsInitializedRef = useRef(false);
 
+  // Safely get language config with a JavaScript fallback
+  const getLangConfig = (langKey) => {
+    if (!langKey) return LANGUAGE_CONFIG.javascript;
+    return LANGUAGE_CONFIG[langKey] || LANGUAGE_CONFIG.javascript;
+  };
+
   // Format last saved time
   const formatLastSaved = () => {
     if (!lastSaved) return null;
@@ -106,14 +112,14 @@ function CodeEditorPanel({
     // Create models for all languages with their respective code
     // This happens once when editor mounts
     Object.keys(LANGUAGE_CONFIG).forEach(lang => {
-      const langConfig = LANGUAGE_CONFIG[lang];
-      const langCode = allLanguageCode[lang] || code || '';
+      const langConfig = getLangConfig(lang);
+      const langCode = allLanguageCode[lang] || code || "";
       updateModelCode(lang, langConfig.monacoLang, langCode);
     });
 
-    // Switch to the selected language
-    const monacoLang = LANGUAGE_CONFIG[selectedLanguage].monacoLang;
-    switchLanguage(selectedLanguage, monacoLang, code);
+    // Switch to the selected language (with safe fallback)
+    const initialLangConfig = getLangConfig(selectedLanguage);
+    switchLanguage(selectedLanguage || "javascript", initialLangConfig.monacoLang, code);
 
     modelsInitializedRef.current = true;
 
@@ -129,12 +135,10 @@ function CodeEditorPanel({
    */
   const handleLanguageChange = (e) => {
     const newLanguage = e.target.value;
-    
-    // Get the Monaco language identifier
-    const monacoLang = LANGUAGE_CONFIG[newLanguage].monacoLang;
+    const langConfig = getLangConfig(newLanguage);
     
     // Get code for this language (from allLanguageCode or empty)
-    const languageCode = allLanguageCode[newLanguage] || '';
+    const languageCode = allLanguageCode[newLanguage] || "";
     
     // Switch to the new language model
     switchLanguage(newLanguage, monacoLang, languageCode);
@@ -150,12 +154,12 @@ function CodeEditorPanel({
   useEffect(() => {
     if (!modelsInitializedRef.current) return;
     
-    const currentModelCode = getModelCode(selectedLanguage);
+    const currentModelCode = getModelCode(selectedLanguage || "javascript");
     
     // Only update if code is different (prevents infinite loops)
     if (currentModelCode !== code) {
-      const monacoLang = LANGUAGE_CONFIG[selectedLanguage].monacoLang;
-      updateModelCode(selectedLanguage, monacoLang, code);
+      const langConfig = getLangConfig(selectedLanguage);
+      updateModelCode(selectedLanguage || "javascript", langConfig.monacoLang, code);
     }
   }, [code, selectedLanguage]);
 
@@ -173,8 +177,8 @@ function CodeEditorPanel({
       <div className="editor-toolbar">
         <div className="editor-controls">
           <img
-            src={LANGUAGE_CONFIG[selectedLanguage].icon}
-            alt={LANGUAGE_CONFIG[selectedLanguage].name}
+            src={getLangConfig(selectedLanguage).icon}
+            alt={getLangConfig(selectedLanguage).name}
             className="language-icon"
           />
           <select 
@@ -261,7 +265,7 @@ function CodeEditorPanel({
       <div className="editor-container">
         <Editor
           height="100%"
-          defaultLanguage={LANGUAGE_CONFIG[selectedLanguage].monacoLang}
+          defaultLanguage={getLangConfig(selectedLanguage).monacoLang}
           defaultValue=""
           theme={isDark ? "talent-iq-dark" : "talent-iq-light"}
           onMount={handleEditorDidMount}

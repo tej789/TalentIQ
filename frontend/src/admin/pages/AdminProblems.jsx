@@ -18,8 +18,7 @@ const AdminProblems = () => {
     try {
       setLoading(true);
       const data = await getAllProblems();
-      setProblems(data.problems);
-    } catch (err) {
+setProblems(data?.problems || []);    } catch (err) {
       console.error("Error fetching problems:", err);
       setError(err.response?.data?.message || "Failed to load problems");
     } finally {
@@ -94,14 +93,14 @@ const AdminProblems = () => {
               </tr>
             </thead>
             <tbody>
-              {problems.length === 0 ? (
+              {(problems?.length || 0) === 0 ? (
                 <tr>
                   <td colSpan="7" style={{ textAlign: "center", padding: "2rem" }}>
                     No problems found. Create your first problem!
                   </td>
                 </tr>
               ) : (
-                problems.map((problem) => (
+                (problems || []).map((problem)=> (
                   <tr key={problem._id}>
                     <td className="problem-title">{problem.title}</td>
                     <td>

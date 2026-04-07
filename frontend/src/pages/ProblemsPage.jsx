@@ -180,8 +180,7 @@ function ProblemsPage() {
 
         {/* PROBLEMS LIST */}
         <div className="space-y-3">
-          {filteredProblems.length === 0 ? (
-            <div className="bg-surface border border-border-subtle rounded-lg p-12 text-center">
+{(filteredProblems?.length || 0) === 0 ? (            <div className="bg-surface border border-border-subtle rounded-lg p-12 text-center">
               <Code2Icon className="size-16 text-text-muted mx-auto mb-4 opacity-50" />
               <h3 className="text-xl font-semibold text-text-primary mb-2">No problems found</h3>
               <p className="text-text-secondary">
@@ -189,8 +188,7 @@ function ProblemsPage() {
               </p>
             </div>
           ) : (
-            filteredProblems.map((problem) => (
-            <Link
+(filteredProblems || []).map((problem) => (            <Link
               key={problem._id}
               to={`/problem/${problem.slug || problem._id}`}
               className="group block bg-surface border border-border-subtle rounded-lg p-5 hover:bg-bg-elevated hover:shadow-md transition-all duration-150 cursor-pointer"

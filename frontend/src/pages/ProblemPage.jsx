@@ -519,7 +519,7 @@ function ProblemPage() {
               problem={currentProblem}
               currentProblemId={currentProblemId}
               onProblemChange={handleProblemChange}
-              allProblems={allProblems.map(p => ({ 
+              allProblems={(allProblems || []).map((p) => ({ 
                 id: p.slug || p._id, 
                 title: p.title, 
                 difficulty: p.difficulty 

@@ -1,53 +1,54 @@
 /**
- * Example React Router Configuration
- * 
- * Add this route to your App.jsx or routes configuration file
+ * React Router Configuration (FINAL FIXED)
  */
 
-// Import the ProfilePage component
-import ProfilePage from './pages/ProfilePage';
+// ✅ Imports (FIXED)
+import { Routes, Route, Link, Navigate, useParams } from "react-router-dom";
+import ProfilePage from "./pages/ProfilePage";
 
-// In your routes configuration (React Router v6):
-const routes = [
-  // ... your existing routes
-  
-  {
-    path: '/profile/:publicProfileId',
-    element: <ProfilePage />,
-  },
-  
-  // Optional: Redirect /u/:publicProfileId to /profile/:publicProfileId
-  {
-    path: '/u/:publicProfileId',
-    element: <Navigate to="/profile/:publicProfileId" replace />,
-  },
-];
 
-// OR if using traditional Route components:
-<Routes>
-  {/* ... your existing routes */}
-  
-  <Route path="/profile/:publicProfileId" element={<ProfilePage />} />
-  <Route path="/u/:publicProfileId" element={<Navigate to="/profile/:publicProfileId" replace />} />
-</Routes>
+// ✅ Redirect component (FIXED dynamic redirect)
+function RedirectProfile() {
+  const { publicProfileId } = useParams();
+  return <Navigate to={`/profile/${publicProfileId}`} replace />;
+}
 
-// Example: Link to profile from navbar or user menu
-import { Link } from 'react-router-dom';
 
+// ✅ Routes (USE THIS — main routing)
+function AppRoutes() {
+  return (
+    <Routes>
+      {/* ... your existing routes */}
+
+      <Route path="/profile/:publicProfileId" element={<ProfilePage />} />
+      <Route path="/u/:publicProfileId" element={<RedirectProfile />} />
+
+    </Routes>
+  );
+}
+
+
+// ✅ User Menu (SAFE — no crash)
 function UserMenu({ user }) {
+  if (!user?.publicProfileId) return null;
+
   return (
     <div>
-      <Link to={`/profile/${user.publicProfileId}`}>
+      <Link to={`/profile/${user?.publicProfileId}`}>
         View Profile
       </Link>
     </div>
   );
 }
 
-// Example: Get current user's public profile ID
-// You'll need to add this to your user state/context
+
+// ✅ Example user object (unchanged)
 const currentUser = {
   _id: "...",
   name: "John Doe",
-  publicProfileId: "6O0OwlfSD8", // From UserProfile
+  publicProfileId: "6O0OwlfSD8",
 };
+
+
+// ✅ Export if needed
+export { AppRoutes, UserMenu };

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { getAdminDashboard } from "../../api/admin";
-import { Loader } from "lucide-react";
+import { Loader, FileCode, CheckCircle } from "lucide-react";
 
 const AdminDashboard = () => {
   const [loading, setLoading] = useState(true);
@@ -24,6 +24,7 @@ const AdminDashboard = () => {
     }
   };
 
+  // ✅ Loading UI
   if (loading) {
     return (
       <div className="admin-loading">
@@ -33,6 +34,7 @@ const AdminDashboard = () => {
     );
   }
 
+  // ✅ Error UI
   if (error) {
     return (
       <div className="admin-error">
@@ -44,7 +46,9 @@ const AdminDashboard = () => {
     );
   }
 
-  const { statistics, problems } = stats;
+  // ✅ SAFE destructuring (FIXED)
+  const statistics = stats?.statistics || {};
+  const problems = stats?.problems || [];
 
   return (
     <div className="admin-dashboard">
@@ -58,7 +62,9 @@ const AdminDashboard = () => {
           </div>
           <div className="stat-content">
             <p className="stat-label">Total Problems</p>
-            <h3 className="stat-value">{statistics.totalProblems}</h3>
+            <h3 className="stat-value">
+              {statistics?.totalProblems || 0}
+            </h3>
           </div>
         </div>
 
@@ -68,12 +74,14 @@ const AdminDashboard = () => {
           </div>
           <div className="stat-content">
             <p className="stat-label">Total Submissions</p>
-            <h3 className="stat-value">{statistics.totalSubmissions}</h3>
+            <h3 className="stat-value">
+              {statistics?.totalSubmissions || 0}
+            </h3>
           </div>
         </div>
 
         {/* Difficulty Breakdown */}
-        {statistics.difficultyBreakdown.map((item) => (
+        {(statistics?.difficultyBreakdown || []).map((item) => (
           <div key={item._id} className="admin-stat-card">
             <div className="stat-content">
               <p className="stat-label">{item._id} Problems</p>
@@ -98,24 +106,32 @@ const AdminDashboard = () => {
               </tr>
             </thead>
             <tbody>
-              {problems.map((problem) => {
+              {(problems || []).map((problem)=> {
                 const acceptanceRate =
                   problem.totalSubmissions > 0
-                    ? ((problem.acceptedSubmissions / problem.totalSubmissions) * 100).toFixed(1)
+                    ? (
+                        (problem.acceptedSubmissions /
+                          problem.totalSubmissions) *
+                        100
+                      ).toFixed(1)
                     : 0;
 
                 return (
                   <tr key={problem._id}>
                     <td className="problem-title">{problem.title}</td>
                     <td>
-                      <span className={`difficulty-badge ${problem.difficulty.toLowerCase()}`}>
+                      <span
+                        className={`difficulty-badge ${problem.difficulty.toLowerCase()}`}
+                      >
                         {problem.difficulty}
                       </span>
                     </td>
                     <td>{problem.totalSubmissions}</td>
                     <td>{problem.acceptedSubmissions}</td>
                     <td>
-                      <span className="acceptance-rate">{acceptanceRate}%</span>
+                      <span className="acceptance-rate">
+                        {acceptanceRate}%
+                      </span>
                     </td>
                   </tr>
                 );
@@ -127,8 +143,5 @@ const AdminDashboard = () => {
     </div>
   );
 };
-
-// Missing imports
-import { FileCode, CheckCircle } from "lucide-react";
 
 export default AdminDashboard;

@@ -34,7 +34,11 @@ function Navbar() {
         const response = await axios.get(`${API_URL}/profile/my-profile-id`, {
           withCredentials: true,
         });
-        const profileId = response.data.data.publicProfileId;
+        const profileId = response?.data?.data?.publicProfileId;
+        if (!profileId) {
+          console.warn("Profile ID missing in response payload", response.data);
+          return;
+        }
         cachedProfileId = profileId;
         setPublicProfileId(profileId);
       } catch (error) {
@@ -152,13 +156,13 @@ function Navbar() {
             </div>
           </Link>
 
-          {/* ADMIN DASHBOARD LINK (visible only for admins) */}
-          {(isAdmin || isAdminLoading) && (
+          {/* ADMIN DASHBOARD LINK (visible only for confirmed admins) */}
+          {isAdmin && (
             <Link
               to={"/admin/dashboard"}
               className={`nav-link nav-link-admin ${
                 isActive("/admin/dashboard") ? "nav-link-admin-active" : ""
-              } ${!isAdmin && isAdminLoading ? "nav-link-admin-loading" : ""}`}
+              }`}
             >
               <div className="nav-link-content">
                 <LayoutDashboardIcon className="nav-icon" />
