@@ -43,6 +43,24 @@ app.use((req, res, next) => {
   next();
 });
 
+// ✅ 🔥 PUBLIC ROUTES FIRST (IMPORTANT)
+app.get("/", (req, res) => {
+  res.send("Backend is running 🚀");
+});
+
+app.head("/", (req, res) => {
+  res.status(200).end();
+});
+
+app.get("/health", (req, res) => {
+  res.status(200).json({ msg: "api is up and running" });
+});
+
+app.get("/test", (req, res) => {
+  res.json({ message: "Backend working perfectly" });
+});
+
+// ❗ AFTER PUBLIC ROUTES
 app.use(clerkMiddleware()); // this adds auth field to request object: req.auth()
 
 app.use("/api/webhooks", webhookRoutes); // Webhook routes (before JSON parsing for raw body)
@@ -57,18 +75,6 @@ app.use("/api/judge", judgeRoutes);
 app.use("/api/profile", profileRoutes);
 app.use("/api/preferences", preferencesRoutes);
 app.use("/api/activity", activityRoutes);
-app.get("/", (req, res) => {
-  res.send("Backend is running 🚀");
-});
-app.head("/", (req, res) => {
-  res.status(200).end();
-});
-app.get("/test", (req, res) => {
-  res.json({ message: "Backend working perfectly" });
-});
-app.get("/health", (req, res) => {
-  res.status(200).json({ msg: "api is up and running" });
-});
 
 // ✅ Global error handler (after all routes)
 app.use((err, req, res, next) => {
@@ -105,8 +111,11 @@ const startServer = async () => {
     // Initialize Yjs WebSocket server for collaborative editing
     initializeYjsServer(server);
     console.log("📝 Yjs collaboration server initialized");
+const PORT = process.env.PORT || ENV.PORT || 5000;
 
-    server.listen(ENV.PORT, () => console.log("Server is running on port:", ENV.PORT));
+server.listen(PORT, "0.0.0.0", () => {
+  console.log("Server is running on port:", PORT);
+});
   } catch (error) {
     console.error("💥 Error starting the server", error);
   }
