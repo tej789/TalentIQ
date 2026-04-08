@@ -12,6 +12,10 @@ export const useCreateSession = () => {
     onError: (error) => {
       // alreadyInSession (409) is handled by individual components with a modal
       if (error.response?.data?.alreadyInSession) return;
+      console.error("Create session failed", {
+        status: error.response?.status,
+        data: error.response?.data,
+      });
       toast.error(error.response?.data?.message || "Failed to create room");
     },
   });

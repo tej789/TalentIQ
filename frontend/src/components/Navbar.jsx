@@ -44,7 +44,10 @@ function Navbar() {
           response?.data?.publicProfileId ||
           response?.data?.data?.profileId;
         if (!profileId) {
-          console.warn("Profile ID missing in response payload", response.data);
+          console.warn("Profile ID missing in response payload", {
+            status: response.status,
+            data: response.data,
+          });
           return;
         }
         cachedProfileId = profileId;
@@ -87,7 +90,10 @@ function Navbar() {
         }
       } catch (error) {
         setIsAdmin(false);
-        console.error("User is not admin or admin check failed:", error);
+        console.error("User is not admin or admin check failed:", {
+          status: error.response?.status,
+          data: error.response?.data,
+        });
         if (typeof window !== "undefined") {
           try {
             const cacheKey = `tiq_admin_${user?.id}`;
