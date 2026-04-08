@@ -141,7 +141,7 @@ function CodeEditorPanel({
     const languageCode = allLanguageCode[newLanguage] || "";
     
     // Switch to the new language model
-    switchLanguage(newLanguage, monacoLang, languageCode);
+    switchLanguage(newLanguage, langConfig.monacoLang, languageCode);
     
     // Notify parent component
     onLanguageChange?.(e);

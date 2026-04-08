@@ -4,10 +4,6 @@ import { Navigate } from "react-router";
 import { Loader } from "lucide-react";
 import axios from "../lib/axios";
 
-const ADMIN_EMAILS = [
-  "pujandesai450@gmail.com",
-];
-
 const ProtectedAdminRoute = ({ children }) => {
   const { isSignedIn, isLoaded, user } = useUser();
   const [isAdmin, setIsAdmin] = useState(null);
@@ -19,13 +15,6 @@ const ProtectedAdminRoute = ({ children }) => {
 
   const checkAdminStatus = async () => {
     if (!isSignedIn || !user) {
-      setIsAdmin(false);
-      setLoading(false);
-      return;
-    }
-
-    const email = user.primaryEmailAddress?.emailAddress;
-    if (!email || !ADMIN_EMAILS.includes(email)) {
       setIsAdmin(false);
       setLoading(false);
       return;

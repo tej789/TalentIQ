@@ -5,11 +5,6 @@ import { useTheme } from "../context/ThemeContext";
 import { useEffect, useState, useRef } from "react";
 import axiosInstance from "../lib/axios";
 
-// Admins are gated by email as an extra safety layer
-const ADMIN_EMAILS = [
-  "pujandesai450@gmail.com",
-];
-
 // Cache profile ID to avoid repeated API calls
 let cachedProfileId = null;
 
@@ -84,12 +79,6 @@ function Navbar() {
     const primeAdminFromCache = () => {
       if (!user?.id || typeof window === "undefined") return;
 
-      const email = user?.primaryEmailAddress?.emailAddress;
-      if (!email || !ADMIN_EMAILS.includes(email)) {
-        setIsAdmin(false);
-        return;
-      }
-
       try {
         const cacheKey = `tiq_admin_${user.id}`;
         const cached = window.sessionStorage.getItem(cacheKey);
@@ -102,8 +91,7 @@ function Navbar() {
     };
 
     const checkAdminStatus = async () => {
-      const email = user?.primaryEmailAddress?.emailAddress;
-      if (!user?.id || !email || !ADMIN_EMAILS.includes(email)) {
+      if (!user?.id) {
         setIsAdmin(false);
         return;
       }
