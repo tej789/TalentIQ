@@ -22,13 +22,13 @@ export function SocketProvider({ children }) {
     if (!userId) return;
 
     const apiUrl = import.meta.env.VITE_API_URL;
-    // In dev, Vite proxies /socket.io to the backend, so connect to same origin (empty string)
-    // In production, connect directly to the backend server root
-    // const isDev = import.meta.env.DEV;
-    // const serverUrl = isDev ? "" : (apiUrl ? apiUrl.replace("/api", "") : "");
-const serverUrl = apiUrl ? apiUrl.replace("/api", "") : "";
+    const isDev = import.meta.env.DEV;
 
-console.log("🔌 Connecting socket to:", serverUrl);
+    // In dev, Vite proxies /socket.io to the backend (see vite.config.js),
+    // so we connect to the same origin (empty string lets socket.io use window.location).
+    // In production, connect directly to the backend server root derived from VITE_API_URL.
+    const serverUrl = isDev ? "" : (apiUrl ? apiUrl.replace("/api", "") : "");
+
     console.log("🔌 Connecting socket to:", serverUrl || "(same origin via proxy)");
 
     const socket = io(serverUrl, {

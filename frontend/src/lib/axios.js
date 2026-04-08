@@ -1,8 +1,10 @@
 import axios from "axios";
 
 // Create axios instance
+const apiBaseUrl = import.meta.env.VITE_API_URL || `${window.location.origin}/api`;
+
 const axiosInstance = axios.create({
-  baseURL: import.meta.env.VITE_API_URL, // e.g. https://your-backend.com/api
+  baseURL: apiBaseUrl, // e.g. https://your-backend.com/api or current-origin /api
   withCredentials: true,
 });
 
