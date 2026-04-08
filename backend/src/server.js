@@ -58,7 +58,10 @@ app.use("/api/profile", profileRoutes);
 app.use("/api/preferences", preferencesRoutes);
 app.use("/api/activity", activityRoutes);
 app.get("/", (req, res) => {
-  res.send("API is running...");
+  res.send("Backend is running 🚀");
+});
+app.head("/", (req, res) => {
+  res.status(200).end();
 });
 app.get("/test", (req, res) => {
   res.json({ message: "Backend working perfectly" });
