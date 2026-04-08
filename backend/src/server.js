@@ -30,14 +30,23 @@ const __dirname = path.resolve();
 
 // middleware
 app.use(express.json());
-// credentials:true meaning?? => server allows a browser to include cookies on request
-// app.use(cors({
-//   origin: true,   // allow all (temporary)
-//   credentials: true
-// }));
+
+// CORS
+// Allow both the primary client URL and local dev frontend
+const allowedOrigins = [
+  ENV.CLIENT_URL,
+  "http://localhost:5173",
+  "https://localhost:5173",
+].filter(Boolean);
+
 app.use(cors({
-  origin: ENV.CLIENT_URL,
-  credentials: true
+  origin(origin, callback) {
+    // Allow non-browser clients with no origin (e.g. curl, Postman)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin)) return callback(null, true);
+    return callback(new Error(`Not allowed by CORS: ${origin}`));
+  },
+  credentials: true,
 }));
 
 // Add logging middleware

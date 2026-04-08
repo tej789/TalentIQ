@@ -3,9 +3,7 @@ import { BookOpenIcon, LayoutDashboardIcon, SparklesIcon, SunIcon, MoonIcon } fr
 import { UserButton, useUser } from "@clerk/clerk-react";
 import { useTheme } from "../context/ThemeContext";
 import { useEffect, useState, useRef } from "react";
-import axios from "axios";
-
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+import axiosInstance from "../lib/axios";
 
 // Cache profile ID to avoid repeated API calls
 let cachedProfileId = null;
@@ -18,23 +16,33 @@ function Navbar() {
   const [publicProfileId, setPublicProfileId] = useState(cachedProfileId);
   const hasFetched = useRef(false);
   const [isAdmin, setIsAdmin] = useState(false);
-  const hasCheckedAdmin = useRef(false);
-  const [isAdminLoading, setIsAdminLoading] = useState(true);
 
   useEffect(() => {
     const fetchUserProfile = async () => {
-      if (!user?.id || hasFetched.current || cachedProfileId) {
-        if (cachedProfileId) setPublicProfileId(cachedProfileId);
+      if (!user?.id) {
+        setPublicProfileId(null);
         return;
       }
-      
+
+      // Reset cache when switching users
+      if (cachedProfileId && cachedProfileId.userId !== user.id) {
+        cachedProfileId = null;
+        hasFetched.current = false;
+      }
+
+      if (hasFetched.current && cachedProfileId) {
+        setPublicProfileId(cachedProfileId);
+        return;
+      }
+
       hasFetched.current = true;
 
       try {
-        const response = await axios.get(`${API_URL}/profile/my-profile-id`, {
-          withCredentials: true,
-        });
-        const profileId = response?.data?.data?.publicProfileId;
+        const response = await axiosInstance.get("/profile/my-profile-id");
+        const profileId =
+          response?.data?.data?.publicProfileId ||
+          response?.data?.publicProfileId ||
+          response?.data?.data?.profileId;
         if (!profileId) {
           console.warn("Profile ID missing in response payload", response.data);
           return;
@@ -63,18 +71,11 @@ function Navbar() {
     const checkAdminStatus = async () => {
       if (!user?.id) {
         setIsAdmin(false);
-        setIsAdminLoading(false);
         return;
       }
 
-      if (hasCheckedAdmin.current) return;
-
-      hasCheckedAdmin.current = true;
-
       try {
-        await axios.get(`${API_URL}/admin/dashboard`, {
-          withCredentials: true,
-        });
+        await axiosInstance.get("/admin/dashboard");
         setIsAdmin(true);
         if (typeof window !== "undefined") {
           try {
@@ -95,15 +96,13 @@ function Navbar() {
             console.error("Error writing admin cache:", err);
           }
         }
-      } finally {
-        setIsAdminLoading(false);
       }
     };
 
     fetchUserProfile();
     primeAdminFromCache();
     checkAdminStatus();
-  }, [user]);
+  }, [user?.id]);
 
   const handleProfileClick = () => {
     if (publicProfileId) {
