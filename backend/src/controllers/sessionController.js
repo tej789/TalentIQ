@@ -64,13 +64,18 @@ export async function checkActiveSession(req, res) {
 
 export async function createSession(req, res) {
   try {
+    console.log("🚀 createSession called");
+    console.log("USER:", req.user);
+    console.log("PROFILE:", req.profile);
+    console.log("BODY:", req.body);
+
     const { problem, difficulty, password, maxParticipants, problemId } = req.body;
 
     const userId = req.user._id;
     const clerkId = req.user.clerkId;
 
-    // ✅ SAFE PROFILE ACCESS
-    const profileId = req.profile?.publicProfileId;
+    // ✅ TEMP: use userId as a safe fallback for profileId
+    const profileId = req.user?._id?.toString();
 
     if (!profileId) {
       console.error("❌ Profile missing:", req.profile);

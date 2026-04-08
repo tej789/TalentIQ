@@ -31,31 +31,9 @@ const __dirname = path.resolve();
 // middleware
 app.use(express.json());
 
-// CORS
-// Allow both the primary client URL and local dev frontend
-const allowedOrigins = [
-  ENV.CLIENT_URL,
-  "http://localhost:5173",
-  "https://localhost:5173",
-].filter(Boolean);
-
+// ✅ Simple, permissive CORS for debugging
 app.use(cors({
-  origin: function (origin, callback) {
-    // allow requests with no origin (mobile apps, Postman)
-    if (!origin) return callback(null, true);
-
-    const allowedOrigins = [
-      "http://localhost:5173",
-      "https://talent-iq.vercel.app",
-    ];
-
-    if (allowedOrigins.includes(origin)) {
-      return callback(null, true);
-    } else {
-      console.log("❌ Blocked by CORS:", origin);
-      return callback(new Error("Not allowed by CORS"));
-    }
-  },
+  origin: true,
   credentials: true,
 }));
 
@@ -87,6 +65,12 @@ app.get("/test", (req, res) => {
 });
 app.get("/health", (req, res) => {
   res.status(200).json({ msg: "api is up and running" });
+});
+
+// ✅ Global error handler (after all routes)
+app.use((err, req, res, next) => {
+  console.error("💥 GLOBAL ERROR:", err.stack || err);
+  res.status(500).json({ message: "Internal Server Error", error: err.message });
 });
 
 // make our app ready for deployment
