@@ -1,31 +1,28 @@
 import axios from "axios";
-import { useAuth } from "@clerk/clerk-react";
 
+// Create axios instance
 const axiosInstance = axios.create({
-  baseURL: import.meta.env.VITE_API_URL,
+  baseURL: import.meta.env.VITE_API_URL, // e.g. https://your-backend.com/api
   withCredentials: true,
 });
 
-// Request interceptor to add Clerk auth token
+// 🔥 Request interceptor to attach Clerk token
 axiosInstance.interceptors.request.use(
   async (config) => {
-    // Get auth token from Clerk
-    const getToken = window.__clerk_getToken;
-    if (getToken) {
-      try {
-        const token = await getToken();
-        if (token) {
-          config.headers.Authorization = `Bearer ${token}`;
-        }
-      } catch (error) {
-        console.error("Error getting auth token:", error);
+    try {
+      // ✅ Correct way to get Clerk token
+      const token = await window.Clerk?.session?.getToken();
+
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
       }
+    } catch (error) {
+      console.error("Error getting Clerk token:", error);
     }
+
     return config;
   },
-  (error) => {
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
 export default axiosInstance;
