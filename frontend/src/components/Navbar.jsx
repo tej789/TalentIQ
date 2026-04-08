@@ -5,6 +5,11 @@ import { useTheme } from "../context/ThemeContext";
 import { useEffect, useState, useRef } from "react";
 import axiosInstance from "../lib/axios";
 
+// Admins are gated by email as an extra safety layer
+const ADMIN_EMAILS = [
+  "pujandesai450@gmail.com",
+];
+
 // Cache profile ID to avoid repeated API calls
 let cachedProfileId = null;
 
@@ -38,27 +43,52 @@ function Navbar() {
       hasFetched.current = true;
 
       try {
+        // First, try to get existing profile ID
         const response = await axiosInstance.get("/profile/my-profile-id");
-        const profileId =
+        let profileId =
           response?.data?.data?.publicProfileId ||
           response?.data?.publicProfileId ||
           response?.data?.data?.profileId;
+
+        // If the shape is unexpected or missing, try to create/fetch profile explicitly
         if (!profileId) {
           console.warn("Profile ID missing in response payload", {
             status: response.status,
             data: response.data,
           });
-          return;
+          try {
+            const createRes = await axiosInstance.post("/profile/create");
+            profileId =
+              createRes?.data?.data?.publicProfileId ||
+              createRes?.data?.publicProfileId;
+          } catch (createErr) {
+            console.error("Error creating profile:", {
+              status: createErr.response?.status,
+              data: createErr.response?.data,
+            });
+          }
         }
+
+        if (!profileId) return;
+
         cachedProfileId = profileId;
         setPublicProfileId(profileId);
       } catch (error) {
-        console.error("Error fetching profile ID:", error);
+        console.error("Error fetching profile ID:", {
+          status: error.response?.status,
+          data: error.response?.data,
+        });
       }
     };
 
     const primeAdminFromCache = () => {
       if (!user?.id || typeof window === "undefined") return;
+
+      const email = user?.primaryEmailAddress?.emailAddress;
+      if (!email || !ADMIN_EMAILS.includes(email)) {
+        setIsAdmin(false);
+        return;
+      }
 
       try {
         const cacheKey = `tiq_admin_${user.id}`;
@@ -72,7 +102,8 @@ function Navbar() {
     };
 
     const checkAdminStatus = async () => {
-      if (!user?.id) {
+      const email = user?.primaryEmailAddress?.emailAddress;
+      if (!user?.id || !email || !ADMIN_EMAILS.includes(email)) {
         setIsAdmin(false);
         return;
       }

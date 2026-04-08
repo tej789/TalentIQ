@@ -118,8 +118,19 @@ export async function createSession(req, res) {
     });
 
     await channel.create();
+// Get profileId from req.profile (set in protectRoute)
+const profileId = req.profile?.publicProfileId;
 
-    res.status(201).json({ session });
+if (!profileId) {
+  return res.status(400).json({ message: "Profile ID missing" });
+}
+
+res.status(201).json({
+  success: true,
+  profileId: profileId,
+  sessionId: session._id,
+  session, // optional but useful
+});
   } catch (error) {
     console.log("Error in createSession controller:", error.message);
     res.status(500).json({ message: "Internal Server Error" });

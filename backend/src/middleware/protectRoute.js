@@ -223,7 +223,7 @@ export const protectRoute = [
 
       // Attach user to request
       req.user = user;
-
+req.profile = profile; // ✅ ADD THIS
       next();
     } catch (error) {
       console.error("Error in protectRoute middleware", error);

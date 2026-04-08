@@ -4,6 +4,10 @@ import { Navigate } from "react-router";
 import { Loader } from "lucide-react";
 import axios from "../lib/axios";
 
+const ADMIN_EMAILS = [
+  "pujandesai450@gmail.com",
+];
+
 const ProtectedAdminRoute = ({ children }) => {
   const { isSignedIn, isLoaded, user } = useUser();
   const [isAdmin, setIsAdmin] = useState(null);
@@ -20,12 +24,22 @@ const ProtectedAdminRoute = ({ children }) => {
       return;
     }
 
+    const email = user.primaryEmailAddress?.emailAddress;
+    if (!email || !ADMIN_EMAILS.includes(email)) {
+      setIsAdmin(false);
+      setLoading(false);
+      return;
+    }
+
     try {
       // Try to fetch admin dashboard to check if user has admin access
       await axios.get("/admin/dashboard");
       setIsAdmin(true);
     } catch (error) {
-      console.error("Not an admin:", error);
+      console.error("Not an admin:", {
+        status: error.response?.status,
+        data: error.response?.data,
+      });
       setIsAdmin(false);
     } finally {
       setLoading(false);
