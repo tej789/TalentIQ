@@ -99,23 +99,24 @@ process.on('uncaughtException', (error) => {
 process.on('unhandledRejection', (reason, promise) => {
   console.error('💥 Unhandled Rejection at:', promise, 'reason:', reason);
 });
+const PORT = process.env.PORT || ENV.PORT || 5000;
 
+// 🔥 START SERVER FIRST (VERY IMPORTANT)
+server.listen(PORT, "0.0.0.0", () => {
+  console.log("Server is running on port:", PORT);
+});
+
+// THEN async setup
 const startServer = async () => {
   try {
     await connectDB();
 
-    // Initialize Socket.IO
     initializeSocket(server);
     console.log("🔌 Socket.IO initialized");
 
-    // Initialize Yjs WebSocket server for collaborative editing
     initializeYjsServer(server);
     console.log("📝 Yjs collaboration server initialized");
-const PORT = process.env.PORT || ENV.PORT || 5000;
 
-server.listen(PORT, "0.0.0.0", () => {
-  console.log("Server is running on port:", PORT);
-});
   } catch (error) {
     console.error("💥 Error starting the server", error);
   }
