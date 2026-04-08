@@ -65,14 +65,23 @@ export async function checkActiveSession(req, res) {
 export async function createSession(req, res) {
   try {
     const { problem, difficulty, password, maxParticipants, problemId } = req.body;
+
     const userId = req.user._id;
     const clerkId = req.user.clerkId;
+
+    // ✅ SAFE PROFILE ACCESS
+    const profileId = req.profile?.publicProfileId;
+
+    if (!profileId) {
+      console.error("❌ Profile missing:", req.profile);
+      return res.status(400).json({ message: "Profile ID missing" });
+    }
 
     if (!problem || !difficulty) {
       return res.status(400).json({ message: "Problem and difficulty are required" });
     }
 
-    // Block if user is already in an active session (409 so frontend shows modal)
+    // Check if already in session
     const existing = await checkUserActiveSession(userId);
     if (existing) {
       return res.status(409).json({
@@ -81,16 +90,15 @@ export async function createSession(req, res) {
         role: existing.role,
         message:
           existing.role === "HOST"
-            ? "You are already hosting an active session. Please end it before creating a new one."
-            : "You are already attending an active session. Please leave it before creating a new one.",
+            ? "You are already hosting an active session."
+            : "You are already attending an active session.",
       });
     }
 
-    // generate a unique call id for stream video
+    // Create callId
     const callId = `session_${Date.now()}_${Math.random().toString(36).substring(7)}`;
 
-    // create session in db with new fields
-    // Auto-add host to participants array so they are tracked uniformly
+    // Create session
     const session = await Session.create({
       problem,
       problemId: problemId || null,
@@ -102,7 +110,7 @@ export async function createSession(req, res) {
       participants: [{ user: userId, canEdit: true, canScreenShare: true }],
     });
 
-    // create stream video call
+    // Create stream call
     await streamClient.video.call("default", callId).getOrCreate({
       data: {
         created_by_id: clerkId,
@@ -110,7 +118,7 @@ export async function createSession(req, res) {
       },
     });
 
-    // chat messaging
+    // Create chat channel
     const channel = chatClient.channel("messaging", callId, {
       name: `${problem} Session`,
       created_by_id: clerkId,
@@ -118,21 +126,17 @@ export async function createSession(req, res) {
     });
 
     await channel.create();
-// Get profileId from req.profile (set in protectRoute)
-const profileId = req.profile?.publicProfileId;
 
-if (!profileId) {
-  return res.status(400).json({ message: "Profile ID missing" });
-}
+    // ✅ FINAL RESPONSE (IMPORTANT)
+    res.status(201).json({
+      success: true,
+      profileId: profileId,
+      sessionId: session._id,
+      session,
+    });
 
-res.status(201).json({
-  success: true,
-  profileId: profileId,
-  sessionId: session._id,
-  session, // optional but useful
-});
   } catch (error) {
-    console.log("Error in createSession controller:", error.message);
+    console.log("❌ Error in createSession controller:", error);
     res.status(500).json({ message: "Internal Server Error" });
   }
 }

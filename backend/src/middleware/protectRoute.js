@@ -207,8 +207,23 @@ export const protectRoute = [
 
       // 🆕 AUTOMATIC PROFILE CREATION
       // Check if user has a profile, create one if missing
-      const existingProfile = await UserProfile.findOne({ userId: user._id });
-      
+// Ensure profile exists
+let profile = await UserProfile.findOne({ userId: user._id });
+
+if (!profile) {
+  try {
+    profile = await createUserProfile(user._id.toString());
+    console.log("✅ Profile created:", profile.publicProfileId);
+  } catch (err) {
+    console.error("❌ Profile creation failed:", err.message);
+  }
+}
+
+// 🚨 VERY IMPORTANT
+req.user = user;
+req.profile = profile; // ✅ MUST ADD THIS
+
+next();      
       if (!existingProfile) {
         console.log(`📝 Profile not found for user ${user.email}, creating automatically...`);
         
