@@ -161,17 +161,17 @@ export const protectRoute = [
       // If user doesn't exist in DB, create them (fallback for missing webhooks)
       if (!user) {
         console.log(`User ${userId} not found in DB, fetching from Clerk and creating...`);
-        
+
         try {
           // Fetch user details from Clerk
           const clerkUser = await clerkClient.users.getUser(userId);
-          
+
           const newUser = {
             clerkId: userId,
             email: clerkUser.emailAddresses[0]?.emailAddress || "",
             name: `${clerkUser.firstName || ""} ${clerkUser.lastName || ""}`.trim() || "User",
             profileImage: clerkUser.imageUrl || "",
-            role: "user"
+            role: "user",
           };
 
           // Try to create user, or find if already exists (race condition handling)
@@ -181,10 +181,10 @@ export const protectRoute = [
           } catch (createError) {
             // If duplicate email error, try to find by email or clerkId
             if (createError.code === 11000) {
-              user = await User.findOne({ 
-                $or: [{ clerkId: userId }, { email: newUser.email }] 
+              user = await User.findOne({
+                $or: [{ clerkId: userId }, { email: newUser.email }],
               });
-              
+
               // Update clerkId if user was found by email
               if (user && user.clerkId !== userId) {
                 user.clerkId = userId;
@@ -195,7 +195,7 @@ export const protectRoute = [
               throw createError;
             }
           }
-          
+
           if (!user) {
             return res.status(500).json({ message: "Error creating user profile" });
           }
@@ -205,40 +205,23 @@ export const protectRoute = [
         }
       }
 
-      // 🆕 AUTOMATIC PROFILE CREATION
-      // Check if user has a profile, create one if missing
-// Ensure profile exists
-let profile = await UserProfile.findOne({ userId: user._id });
+      // Ensure the user has a profile; create one if missing
+      let profile = await UserProfile.findOne({ userId: user._id });
 
-if (!profile) {
-  try {
-    profile = await createUserProfile(user._id.toString());
-    console.log("✅ Profile created:", profile.publicProfileId);
-  } catch (err) {
-    console.error("❌ Profile creation failed:", err.message);
-  }
-}
-
-// 🚨 VERY IMPORTANT
-req.user = user;
-req.profile = profile; // ✅ MUST ADD THIS
-
-next();      
-      if (!existingProfile) {
-        console.log(`📝 Profile not found for user ${user.email}, creating automatically...`);
-        
+      if (!profile) {
         try {
-          const newProfile = await createUserProfile(user._id.toString());
-          console.log(`✅ Profile created automatically with ID: ${newProfile.publicProfileId}`);
+          profile = await createUserProfile(user._id.toString());
+          console.log("✅ Profile created automatically with ID:", profile.publicProfileId);
         } catch (profileError) {
           console.error("⚠️ Error creating profile (continuing anyway):", profileError.message);
-          // Don't block the request if profile creation fails
+          // Do not block the request if profile creation fails
         }
       }
 
-      // Attach user to request
+      // Attach user and (optional) profile to the request
       req.user = user;
-req.profile = profile; // ✅ ADD THIS
+      req.profile = profile || null;
+
       next();
     } catch (error) {
       console.error("Error in protectRoute middleware", error);
