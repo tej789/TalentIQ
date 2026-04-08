@@ -40,10 +40,22 @@ const allowedOrigins = [
 ].filter(Boolean);
 
 app.use(cors({
-  origin: [
-    "http://localhost:5173", // ✅ your current frontend
-    "https://talent-iq.vercel.app" // (optional future deploy)
-  ],
+  origin: function (origin, callback) {
+    // allow requests with no origin (mobile apps, Postman)
+    if (!origin) return callback(null, true);
+
+    const allowedOrigins = [
+      "http://localhost:5173",
+      "https://talent-iq.vercel.app",
+    ];
+
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    } else {
+      console.log("❌ Blocked by CORS:", origin);
+      return callback(new Error("Not allowed by CORS"));
+    }
+  },
   credentials: true,
 }));
 
