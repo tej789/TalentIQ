@@ -76,6 +76,11 @@ app.use("/api/profile", profileRoutes);
 app.use("/api/preferences", preferencesRoutes);
 app.use("/api/activity", activityRoutes);
 
+// 🔥 FALLBACK RESPONSE (LAST before error handler)
+app.use((req, res) => {
+  res.status(200).send("Server alive fallback 🚀");
+});
+
 // ✅ Global error handler (after all routes)
 app.use((err, req, res, next) => {
   console.error("💥 GLOBAL ERROR:", err.stack || err);
@@ -99,6 +104,7 @@ process.on('uncaughtException', (error) => {
 process.on('unhandledRejection', (reason, promise) => {
   console.error('💥 Unhandled Rejection at:', promise, 'reason:', reason);
 });
+
 const PORT = process.env.PORT || ENV.PORT || 5000;
 
 // 🔥 START SERVER FIRST (VERY IMPORTANT)
@@ -106,16 +112,36 @@ server.listen(PORT, "0.0.0.0", () => {
   console.log("Server is running on port:", PORT);
 });
 
+// 🔥 KEEP-ALIVE TUNING
+server.keepAliveTimeout = 65000;
+server.headersTimeout = 66000;
+
+// 🔥 FORCE LOGGING HEARTBEAT
+setInterval(() => {
+  console.log("💓 Server heartbeat alive");
+}, 10000);
+
 // THEN async setup
 const startServer = async () => {
   try {
     await connectDB();
 
-    initializeSocket(server);
-    console.log("🔌 Socket.IO initialized");
+    // 🔥 WRAP SOCKET + YJS SAFELY
+    try {
+      // TEMP: comment out initializeSocket for debugging if needed
+      initializeSocket(server);
+      console.log("🔌 Socket.IO initialized");
+    } catch (e) {
+      console.error("❌ Socket error:", e);
+    }
 
-    initializeYjsServer(server);
-    console.log("📝 Yjs collaboration server initialized");
+    try {
+      // TEMP: comment out initializeYjsServer for debugging if needed
+      initializeYjsServer(server);
+      console.log("📝 Yjs collaboration server initialized");
+    } catch (e) {
+      console.error("❌ Yjs error:", e);
+    }
 
   } catch (error) {
     console.error("💥 Error starting the server", error);
