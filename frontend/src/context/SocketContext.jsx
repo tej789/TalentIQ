@@ -22,14 +22,13 @@ export function SocketProvider({ children }) {
     if (!userId) return;
 
     const apiUrl = import.meta.env.VITE_API_URL;
-    const isDev = import.meta.env.DEV;
+    const backendFromApi = apiUrl ? apiUrl.replace(/\/api\/?$/, "") : "";
+    const serverUrl =
+      import.meta.env.VITE_BACKEND_URL ||
+      backendFromApi ||
+      "http://localhost:3000";
 
-    // In dev, Vite proxies /socket.io to the backend (see vite.config.js),
-    // so we connect to the same origin (empty string lets socket.io use window.location).
-    // In production, connect directly to the backend server root derived from VITE_API_URL.
-    const serverUrl = isDev ? "" : (apiUrl ? apiUrl.replace("/api", "") : "");
-
-    console.log("🔌 Connecting socket to:", serverUrl || "(same origin via proxy)");
+    console.log("🔌 Connecting socket to:", serverUrl);
 
     const socket = io(serverUrl, {
       withCredentials: true,
@@ -52,7 +51,15 @@ export function SocketProvider({ children }) {
     });
 
     socket.on("connect_error", (err) => {
-      console.error("Socket connection error:", err.message);
+      console.error("Socket connection error:", err?.message || err);
+    });
+
+    socket.io.on("reconnect_attempt", (attempt) => {
+      console.warn("Socket reconnect attempt:", attempt);
+    });
+
+    socket.io.on("reconnect_failed", () => {
+      console.error("Socket reconnect failed after max attempts");
     });
 
     return () => {

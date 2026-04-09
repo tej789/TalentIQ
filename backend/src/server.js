@@ -9,7 +9,6 @@ import { ENV } from "./lib/env.js";
 import { connectDB } from "./lib/db.js";
 import { inngest, functions } from "./lib/inngest.js";
 import { initializeSocket } from "./lib/socket.js";
-import { initializeYjsServer } from "./lib/yjsServer.js";
 
 import chatRoutes from "./routes/chatRoutes.js";
 import sessionRoutes from "./routes/sessionRoute.js";
@@ -126,21 +125,13 @@ const startServer = async () => {
   try {
     await connectDB();
 
-    // 🔥 WRAP SOCKET + YJS SAFELY
+    // 🔥 Initialize Socket.IO
     try {
       // TEMP: comment out initializeSocket for debugging if needed
       initializeSocket(server);
       console.log("🔌 Socket.IO initialized");
     } catch (e) {
       console.error("❌ Socket error:", e);
-    }
-
-    try {
-      // TEMP: comment out initializeYjsServer for debugging if needed
-      initializeYjsServer(server);
-      console.log("📝 Yjs collaboration server initialized");
-    } catch (e) {
-      console.error("❌ Yjs error:", e);
     }
 
   } catch (error) {

@@ -2,7 +2,6 @@ import { Server } from "socket.io";
 import Session from "../models/Session.js";
 import User from "../models/User.js";
 import { ENV } from "./env.js";
-import { getYjsRoomText } from "./yjsServer.js";
 
 let io;
 
@@ -160,9 +159,8 @@ export function initializeSocket(httpServer) {
     });
 
     // ─── SESSION:CODE_UPDATE ─────────────────────────
-    // NOTE: Code sync is now handled by Yjs CRDT via WebSocket.
-    // This handler is kept only for backward compatibility / fallback
-    // to update the in-memory room.code for periodic DB saves.
+    // Primary real-time code sync channel. The host and participants
+    // broadcast full document updates to all other users in the room.
     socket.on("session:code_update", async (data) => {
       try {
         const { sessionId, code, userId, userName } = data;
@@ -171,7 +169,13 @@ export function initializeSocket(httpServer) {
         const room = getSessionRoom(sessionId);
         room.code = code;
 
-        // Do NOT broadcast to other clients — Yjs handles real-time sync
+        // Broadcast updated code to all other collaborators in the same room
+        socket.to(sessionId).emit("session:code_update", {
+          sessionId,
+          code,
+          userId,
+          userName,
+        });
       } catch (err) {
         console.error("session:code_update error:", err);
       }
@@ -220,10 +224,9 @@ export function initializeSocket(httpServer) {
         if (previousLanguage && previousCode !== undefined) {
           room.languageCode[previousLanguage] = previousCode;
         } else {
-          // Fallback: save current Yjs/room code under old language
+          // Fallback: save current in-memory room code under old language
           const oldLang = room.language;
-          const yjsText = getYjsRoomText(sessionId);
-          const currentCode = yjsText || room.code;
+          const currentCode = room.code;
           if (oldLang && currentCode) {
             room.languageCode[oldLang] = currentCode;
           }
@@ -497,10 +500,7 @@ export function initializeSocket(httpServer) {
         if (!sessionId) return;
 
         const room = getSessionRoom(sessionId);
-        // Prefer Yjs document text if available
-        const yjsText = getYjsRoomText(sessionId);
-        const codeToSave = yjsText || room.code;
-        if (yjsText) room.code = yjsText;
+        const codeToSave = room.code;
 
         // Also save current code under current language in the map
         if (room.language && codeToSave) {
@@ -534,10 +534,7 @@ export function initializeSocket(httpServer) {
 
         const room = getSessionRoom(sessionId);
 
-        // Prefer Yjs document text if available
-        const yjsText = getYjsRoomText(sessionId);
-        const finalCodeText = yjsText || room.code;
-        if (yjsText) room.code = yjsText;
+        const finalCodeText = room.code;
 
         // Save current code under current language
         if (room.language && finalCodeText) {
@@ -583,10 +580,7 @@ export function initializeSocket(httpServer) {
 
           // Save code periodically on disconnect
           try {
-            // Prefer Yjs document text if available
-            const yjsText = getYjsRoomText(sessionId);
-            const codeToSave = yjsText || room.code;
-            if (yjsText) room.code = yjsText;
+            const codeToSave = room.code;
 
             // Save current code under current language in the map
             if (room.language && codeToSave) {

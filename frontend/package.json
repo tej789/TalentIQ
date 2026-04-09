@@ -30,8 +30,6 @@
     "stream-chat": "^9.23.0",
     "stream-chat-react": "^13.9.0",
     "tailwindcss": "^4.1.14",
-    "y-monaco": "^0.1.6",
-    "y-websocket": "^3.0.0",
     "yjs": "^13.6.29"
   },
   "devDependencies": {

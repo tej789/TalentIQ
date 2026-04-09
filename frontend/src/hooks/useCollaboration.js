@@ -41,7 +41,7 @@ export function useCollaboration(sessionId, userId, userName, userImage, isHost)
   const [joinRejected, setJoinRejected] = useState(null); // { message, existingSessionId }
 
   // Debounce refs for code updates
-  const codeUpdateTimerRef = useRef("");
+  const codeUpdateTimerRef = useRef(null);
   const lastSentCodeRef = useRef("");
 
   // Join the session room
@@ -69,8 +69,14 @@ export function useCollaboration(sessionId, userId, userName, userImage, isHost)
       if (data.cursors) setCursors(data.cursors);
     };
 
-    // NOTE: Code sync is now handled by Yjs CRDT.
-    // session:code_update listener removed — no longer needed for real-time sync.
+    // Real-time code updates from other collaborators
+    const handleCodeUpdate = (data) => {
+      if (!data) return;
+      const { code } = data;
+      if (typeof code === "string") {
+        setRemoteCode(code);
+      }
+    };
 
     // Cursor updates from others
     const handleCursorUpdate = (data) => {
@@ -167,6 +173,7 @@ export function useCollaboration(sessionId, userId, userName, userImage, isHost)
     };
 
     on("session:state", handleState);
+    on("session:code_update", handleCodeUpdate);
     on("session:cursor_update", handleCursorUpdate);
     on("session:language_change", handleLanguageChange);
     on("session:user_joined", handleUserJoined);
@@ -181,6 +188,7 @@ export function useCollaboration(sessionId, userId, userName, userImage, isHost)
 
     return () => {
       off("session:state", handleState);
+      off("session:code_update", handleCodeUpdate);
       off("session:cursor_update", handleCursorUpdate);
       off("session:language_change", handleLanguageChange);
       off("session:user_joined", handleUserJoined);
@@ -196,17 +204,27 @@ export function useCollaboration(sessionId, userId, userName, userImage, isHost)
   }, [socket, on, off, userId]);
 
   // ── Send code update ──
-  // NOTE: Real-time code sync is now handled by Yjs CRDT.
-  // This function is kept for backward compatibility but no longer
-  // broadcasts full code to other clients. It only tracks the latest
-  // code locally for save operations.
+  // Debounced broadcast of full document text to the session room.
   const sendCodeUpdate = useCallback(
     (code) => {
-      // No-op for real-time sync — Yjs handles it.
-      // Just track the latest code for potential save operations.
+      if (!isConnected || !sessionId) return;
+
       lastSentCodeRef.current = code;
+
+      if (codeUpdateTimerRef.current) {
+        clearTimeout(codeUpdateTimerRef.current);
+      }
+
+      codeUpdateTimerRef.current = setTimeout(() => {
+        emit("session:code_update", {
+          sessionId,
+          code: lastSentCodeRef.current,
+          userId,
+          userName,
+        });
+      }, 150);
     },
-    []
+    [isConnected, sessionId, userId, userName, emit]
   );
 
   // Send cursor position

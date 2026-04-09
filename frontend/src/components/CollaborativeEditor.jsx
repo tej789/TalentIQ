@@ -3,7 +3,6 @@ import Editor from "@monaco-editor/react";
 import { Loader2Icon, PlayIcon, Save, Cloud, CloudOff, LockIcon, UnlockIcon } from "lucide-react";
 import { LANGUAGE_CONFIG } from "../data/problems";
 import { useTheme } from "../context/ThemeContext";
-import { useYjsSync } from "../hooks/useYjsSync";
 
 /**
  * CollaborativeEditor wraps Monaco Editor with real-time
@@ -27,7 +26,6 @@ function CollaborativeEditor({
   isHost = false,
   connectedUsers = {},
   sessionId,
-  yjsActionsRef,
 }) {
   const { isDark } = useTheme();
   const editorRef = useRef(null);
@@ -35,44 +33,24 @@ function CollaborativeEditor({
   const decorationsRef = useRef([]);
   const [editorReady, setEditorReady] = useState(false);
   const prevLanguageRef = useRef(selectedLanguage);
+  const suppressChangeRef = useRef(false);
 
   // Keep code prop in a ref for language-change effect (avoids re-running effect on every keystroke)
   const codeRef = useRef(code);
   codeRef.current = code;
 
-  // Yjs collaborative sync — binds to Monaco model when editor is ready
-  const { isYjsConnected, replaceAllContent, getContent } = useYjsSync(
-    sessionId,
-    editorReady ? editorRef.current : null,
-    editorReady ? monacoRef.current : null,
-    !!sessionId,
-    code // initialCode: starter code to seed into empty Yjs doc
-  );
-
-  // Expose replaceAllContent and getContent to parent (SessionPage) via ref
-  useEffect(() => {
-    if (yjsActionsRef) {
-      yjsActionsRef.current = { replaceAllContent, getContent };
-    }
-  }, [yjsActionsRef, replaceAllContent, getContent]);
-
-  // When language changes, replace editor content with new starter code.
-  // In Yjs mode: do NOT call model.setValue() — parent calls replaceAllContent
-  // via yjsActionsRef, and MonacoBinding auto-updates from the Yjs doc.
-  // In non-Yjs mode (solo practice): use model.setValue() directly.
+  // When language changes, replace editor content with new code for that language
+  // using the controlled code prop.
   useEffect(() => {
     if (prevLanguageRef.current === selectedLanguage) return;
     prevLanguageRef.current = selectedLanguage;
 
-    // In Yjs (session) mode, content is handled by replaceAllContent from parent.
-    // MonacoBinding syncs Yjs → editor automatically. Do nothing here.
-    if (sessionId) return;
-
-    // Non-Yjs mode: directly set model content
+    // Directly set model content for the new language
     const editor = editorRef.current;
     if (editor && codeRef.current) {
       const model = editor.getModel();
       if (model) {
+        suppressChangeRef.current = true;
         model.setValue(codeRef.current);
       }
     }
@@ -143,15 +121,17 @@ function CollaborativeEditor({
       }
     });
 
-    // Signal that editor is ready for Yjs binding
     setEditorReady(true);
   };
 
-  // Handle user-initiated code changes only
-  // When Yjs is active (sessionId is set), Yjs binding handles content sync.
-  // onCodeChange is still called for local state (e.g. run code uses it).
+  // Handle user-initiated code changes only. Remote updates coming from
+  // Socket.IO set suppressChangeRef to avoid echoing changes back.
   const handleEditorChange = useCallback(
     (value) => {
+      if (suppressChangeRef.current) {
+        suppressChangeRef.current = false;
+        return;
+      }
       if (value !== undefined) {
         onCodeChange?.(value);
       }
@@ -216,6 +196,19 @@ function CollaborativeEditor({
       monacoRef.current.editor.setTheme(isDark ? "collab-dark" : "collab-light");
     }
   }, [isDark]);
+
+  // Keep Monaco model in sync with the latest code prop (including remote updates)
+  useEffect(() => {
+    if (!editorRef.current) return;
+    const model = editorRef.current.getModel();
+    if (!model) return;
+
+    const currentValue = model.getValue();
+    if (typeof code === "string" && code !== currentValue) {
+      suppressChangeRef.current = true;
+      model.setValue(code);
+    }
+  }, [code]);
 
   return (
     <div className="collab-editor-panel">
@@ -348,8 +341,8 @@ function CollaborativeEditor({
       <div className="editor-container">
         <Editor
           height="100%"
-        language={LANGUAGE_CONFIG[selectedLanguage]?.monacoLang || "javascript"}
-        defaultValue={sessionId ? "" : code}
+          language={LANGUAGE_CONFIG[selectedLanguage]?.monacoLang || "javascript"}
+          defaultValue={code}
           theme={isDark ? "collab-dark" : "collab-light"}
           onMount={handleEditorDidMount}
           onChange={handleEditorChange}

@@ -51,7 +51,7 @@ function SessionPage() {
   // flip `isParticipant → false` and cause a visible flicker before navigate().
   const [isLeaving, setIsLeaving] = useState(false);
 
-  // Detect mobile viewport — only ONE editor gets Yjs connection to prevent
+  // Detect mobile viewport
   // dual Y.Doc connections (the root cause of code duplication on sync)
   const [isMobile, setIsMobile] = useState(() =>
     typeof window !== "undefined" ? window.matchMedia("(max-width: 768px)").matches : false
@@ -111,9 +111,6 @@ function SessionPage() {
 
   const [code, setCode] = useState("");
 
-  // Ref to access Yjs replaceAllContent from CollaborativeEditor
-  const yjsActionsRef = useRef(null);
-
   // Real-time collaboration
   const {
     remoteCode,
@@ -150,18 +147,15 @@ function SessionPage() {
     isHost
   );
 
-  // Apply remote code updates
-  // NOTE: Code sync is now handled by Yjs CRDT directly in the editor.
-  // remoteCode from socket is only used for initial state / language changes.
+  // Apply remote code updates from Socket.IO
   useEffect(() => {
-    if (remoteCode && !code) {
+    if (typeof remoteCode === "string" && remoteCode !== code) {
       setCode(remoteCode);
     }
-  }, [remoteCode]);
+  }, [remoteCode, code]);
 
-  // Apply remote language changes
-  // Only update the language selector — Yjs handles the code content sync.
-  // If the server sent saved code for the new language, use it via Yjs.
+  // Apply remote language changes and, if available, the corresponding code
+  // snapshot provided by the host via savedCode.
   useEffect(() => {
     if (remoteLanguage && remoteLanguage !== selectedLanguage) {
       // Save current code under old language before switching
@@ -170,10 +164,11 @@ function SessionPage() {
         [selectedLanguage]: code,
       }));
       setSelectedLanguage(remoteLanguage);
-      // If there's saved code from the server for this language, Yjs will handle
-      // the content sync (the remote user already called replaceAllContent).
+      if (remoteSavedCode !== null && remoteSavedCode !== undefined) {
+        setCode(remoteSavedCode);
+      }
     }
-  }, [remoteLanguage]);
+  }, [remoteLanguage, remoteSavedCode, selectedLanguage, code]);
 
   // Reset trackers whenever we navigate to a different session.
   useEffect(() => {
@@ -309,7 +304,7 @@ function SessionPage() {
     if (session.status === "completed") navigate("/dashboard");
   }, [session, loadingSession, navigate]);
 
-  // Update code when problem loads (only once, before Yjs connects)
+  // Update code when problem loads (only once, before collaboration connects)
   useEffect(() => {
     if (!problemData?.starterCode) return;
     const starter = getStarterCode(selectedLanguage);
@@ -323,8 +318,7 @@ function SessionPage() {
       const newLang = e.target.value;
       const oldLang = selectedLanguage;
 
-      // Get current code from Yjs (authoritative source) to avoid stale React state
-      const oldCode = yjsActionsRef.current?.getContent?.() || code;
+      const oldCode = code;
 
       // Save current code under old language locally
       setLanguageCode((prev) => ({
@@ -351,11 +345,6 @@ function SessionPage() {
         setLastSaved(new Date());
       }, 600);
 
-      // Replace Yjs document content — destroys/recreates MonacoBinding
-      // internally for a clean replacement with no leftover characters.
-      if (yjsActionsRef.current?.replaceAllContent) {
-        yjsActionsRef.current.replaceAllContent(newCode);
-      }
     },
     [getStarterCode, sendLanguageChange, selectedLanguage, code, languageCode]
   );
@@ -736,7 +725,6 @@ function SessionPage() {
                   isHost={isHost}
                   connectedUsers={connectedUsers}
                   sessionId={!isMobile ? id : null}
-                  yjsActionsRef={!isMobile ? yjsActionsRef : null}
                 />
               </Panel>
 
@@ -860,7 +848,6 @@ function SessionPage() {
               isHost={isHost}
               connectedUsers={connectedUsers}
               sessionId={isMobile ? id : null}
-              yjsActionsRef={isMobile ? yjsActionsRef : null}
             />
           </div>
 
