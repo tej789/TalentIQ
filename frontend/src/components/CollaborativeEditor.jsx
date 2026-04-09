@@ -1,9 +1,8 @@
-import { useEffect, useRef, useCallback, memo, useState } from "react";
+import { useEffect, useRef, memo, useState } from "react";
 import Editor from "@monaco-editor/react";
 import { Loader2Icon, PlayIcon, Save, Cloud, CloudOff, LockIcon, UnlockIcon } from "lucide-react";
 import { LANGUAGE_CONFIG } from "../data/problems";
 import { useTheme } from "../context/ThemeContext";
-import { useSocket } from "../context/SocketContext";
 
 /**
  * CollaborativeEditor wraps Monaco Editor with real-time
@@ -15,6 +14,9 @@ function CollaborativeEditor({
   isSaving,
   isAutoSaving,
   lastSaved,
+  // Code value + change handler from parent (SessionPage)
+  codeValue,
+  onCodeChange,
   onLanguageChange,
   onRunCode,
   onSubmitCode,
@@ -24,10 +26,8 @@ function CollaborativeEditor({
   onCursorUpdate,
   isHost = false,
   connectedUsers = {},
-  sessionId,
 }) {
   const { isDark } = useTheme();
-  const { socket, emit, isConnected } = useSocket();
   const editorRef = useRef(null);
   const monacoRef = useRef(null);
   const decorationsRef = useRef([]);
@@ -137,18 +137,13 @@ function CollaborativeEditor({
     // Listen for content changes to emit Monaco deltas and update parent code
     editor.onDidChangeModelContent((event) => {
       const model = editor.getModel();
-      if (isRemoteUpdateRef.current) {
-        return;
+      const value = model ? model.getValue() : "";
+
+      // Always propagate latest content to parent so "Run Code" and
+      // autosave use the actual editor text, even for remote updates.
+      if (onCodeChange) {
+        onCodeChange(value);
       }
-
-      if (!sessionId || !isConnected) return;
-      const changes = event.changes || [];
-      if (!changes.length) return;
-
-      emit("session:code_delta", {
-        sessionId,
-        changes,
-      });
     });
 
     setEditorReady(true);
@@ -214,70 +209,6 @@ function CollaborativeEditor({
 
   // Initial sync effect intentionally left empty: Monaco starts from its own
   // model value and is driven solely by local edits and remote deltas.
-
-  // Apply remote deltas from other collaborators using Monaco executeEdits
-  useEffect(() => {
-    if (!socket || !sessionId || !editorReady) return;
-
-    const handleCodeDelta = (data) => {
-      if (!data || data.sessionId !== sessionId) return;
-      const { changes, senderSocketId } = data;
-
-      // Ignore our own events if they somehow arrive
-      if (senderSocketId && socket && senderSocketId === socket.id) {
-        return;
-      }
-      const editor = editorRef.current;
-      if (!editor || !Array.isArray(changes) || !changes.length) return;
-
-      console.log("RECEIVED UPDATE", { changes, from: senderSocketId });
-
-      const edits = changes
-        .map((change) => {
-          const { range, text } = change || {};
-          if (!range) return null;
-          return {
-            range,
-            text: text ?? "",
-            forceMoveMarkers: true,
-          };
-        })
-        .filter(Boolean);
-
-      if (!edits.length) return;
-
-      // Ensure remote updates apply even when this editor is read-only
-      // (view-only participants). Temporarily disable readOnly just for
-      // the programmatic edit, then restore it.
-      let wasReadOnly = false;
-      try {
-        const rawOptions = editor.getRawOptions ? editor.getRawOptions() : {};
-        wasReadOnly = !!rawOptions.readOnly;
-      } catch {
-        wasReadOnly = false;
-      }
-
-      if (wasReadOnly) {
-        editor.updateOptions({ readOnly: false });
-      }
-
-      isRemoteUpdateRef.current = true;
-      editor.executeEdits("remote", edits);
-      editor.pushUndoStop();
-      isRemoteUpdateRef.current = false;
-
-      if (wasReadOnly) {
-        editor.updateOptions({ readOnly: true });
-      }
-    };
-
-    console.log("LISTENER ATTACHED");
-    socket.off("session:code_delta");
-    socket.on("session:code_delta", handleCodeDelta);
-    return () => {
-      socket.off("session:code_delta", handleCodeDelta);
-    };
-  }, [socket, sessionId, editorReady]);
 
   return (
     <div className="collab-editor-panel">
@@ -413,6 +344,12 @@ function CollaborativeEditor({
           language={LANGUAGE_CONFIG[selectedLanguage]?.monacoLang || "javascript"}
           theme={isDark ? "collab-dark" : "collab-light"}
           onMount={handleEditorDidMount}
+          value={codeValue}
+          onChange={(value) => {
+            if (onCodeChange) {
+              onCodeChange(value || "");
+            }
+          }}
           options={{
             readOnly: !canEdit,
             fontSize: 14,

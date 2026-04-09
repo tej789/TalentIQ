@@ -8,8 +8,10 @@ import { useSocket } from "../context/SocketContext";
 export function useCollaboration(sessionId, userId, userName, userImage, isHost) {
   const { socket, emit, on, off, isConnected } = useSocket();
 
-  // Code state synced across all participants
-  const [remoteCode, setRemoteCode] = useState("");
+  // Code snapshot from server (initial join / explicit sync).
+  // Use `null` as "not yet received" so we don't overwrite
+  // local edits with an empty string.
+  const [remoteCode, setRemoteCode] = useState(null);
   const [remoteLanguage, setRemoteLanguage] = useState("javascript");
 
   // Per-language code map from server
@@ -62,14 +64,14 @@ export function useCollaboration(sessionId, userId, userName, userImage, isHost)
 
     // Receive initial state on join
     const handleState = (data) => {
-      if (data.code) setRemoteCode(data.code);
+      if (typeof data.code === "string") setRemoteCode(data.code);
       if (data.language) setRemoteLanguage(data.language);
       if (data.languageCode) setLanguageCode(data.languageCode);
       if (data.users) setConnectedUsers(data.users);
       if (data.cursors) setCursors(data.cursors);
     };
 
-    // Real-time code updates from other collaborators
+    // Real-time full-text code updates from other collaborators
     const handleCodeUpdate = (data) => {
       if (!data) return;
       const { code } = data;
@@ -173,6 +175,7 @@ export function useCollaboration(sessionId, userId, userName, userImage, isHost)
     };
 
     on("session:state", handleState);
+    on("session:code_update", handleCodeUpdate);
     on("session:cursor_update", handleCursorUpdate);
     on("session:language_change", handleLanguageChange);
     on("session:user_joined", handleUserJoined);
@@ -187,6 +190,7 @@ export function useCollaboration(sessionId, userId, userName, userImage, isHost)
 
     return () => {
       off("session:state", handleState);
+      off("session:code_update", handleCodeUpdate);
       off("session:cursor_update", handleCursorUpdate);
       off("session:language_change", handleLanguageChange);
       off("session:user_joined", handleUserJoined);
@@ -297,6 +301,22 @@ export function useCollaboration(sessionId, userId, userName, userImage, isHost)
     emit("session:save_code", { sessionId });
   }, [sessionId, emit]);
 
+  // Broadcast current code to other collaborators (full-text sync)
+  const sendCodeUpdate = useCallback(
+    (code) => {
+      if (!isConnected || !sessionId) return;
+      if (typeof code !== "string") return;
+
+      emit("session:code_update", {
+        sessionId,
+        code,
+        userId,
+        userName,
+      });
+    },
+    [isConnected, sessionId, userId, userName, emit]
+  );
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
@@ -324,6 +344,7 @@ export function useCollaboration(sessionId, userId, userName, userImage, isHost)
 
     // Actions
     sendCursorUpdate,
+    sendCodeUpdate,
     sendLanguageChange,
     setLanguageCode,
     grantEdit,

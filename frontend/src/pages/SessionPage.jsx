@@ -139,6 +139,7 @@ function SessionPage() {
     joinRejected,
     isConnected: socketConnected,
     sendCursorUpdate,
+    sendCodeUpdate,
     sendLanguageChange,
     setLanguageCode,
     grantEdit,
@@ -160,10 +161,9 @@ function SessionPage() {
 
   // Apply remote code updates from Socket.IO
   useEffect(() => {
-    if (typeof remoteCode === "string" && remoteCode !== code) {
-      setCode(remoteCode);
-    }
-  }, [remoteCode, code]);
+    if (remoteCode == null) return; // only apply when server sends a snapshot
+    setCode(remoteCode);
+  }, [remoteCode]);
 
   // Apply remote language changes and, if available, the corresponding code
   // snapshot provided by the host via savedCode. This runs only when the
@@ -372,6 +372,9 @@ function SessionPage() {
     (newCode) => {
       setCode(newCode);
 
+      // Broadcast the latest code to other collaborators
+      sendCodeUpdate(newCode);
+
       // Debounced auto-save: save after 2s of inactivity
       if (autoSaveTimerRef.current) {
         clearTimeout(autoSaveTimerRef.current);
@@ -386,7 +389,7 @@ function SessionPage() {
         }, 500);
       }, 2000);
     },
-    [saveCode]
+    [saveCode, sendCodeUpdate]
   );
 
   const handleCursorUpdate = useCallback(
@@ -731,6 +734,8 @@ function SessionPage() {
                 <CollaborativeEditor
                   selectedLanguage={selectedLanguage}
                   isRunning={isRunning}
+                  codeValue={code}
+                  onCodeChange={handleCodeChange}
                   isAutoSaving={isAutoSaving}
                   lastSaved={lastSaved}
                   onLanguageChange={handleLanguageChange}
@@ -852,6 +857,8 @@ function SessionPage() {
             <CollaborativeEditor
               selectedLanguage={selectedLanguage}
               isRunning={isRunning}
+              codeValue={code}
+              onCodeChange={handleCodeChange}
               isAutoSaving={isAutoSaving}
               lastSaved={lastSaved}
               onLanguageChange={handleLanguageChange}

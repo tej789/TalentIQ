@@ -120,29 +120,42 @@ export function initializeSocket(httpServer) {
 
         // ── Track user in connectedUsers ──
         room.connectedUsers.set(socket.id, {
-          userId,
-          userName,
-          userImage,
-          color: getRandomColor(),
-        });
-
-        // Load saved languageCode from DB if room is fresh (no languageCode loaded yet)
-        if (Object.keys(room.languageCode).length === 0) {
-          try {
-            const dbSession = await Session.findById(sessionId).select("languageCode");
-            if (dbSession?.languageCode) {
-              const savedMap = dbSession.languageCode instanceof Map
-                ? Object.fromEntries(dbSession.languageCode)
-                : dbSession.languageCode;
-              room.languageCode = { ...savedMap };
+          // 
+          // ─── SESSION:CODE_DELTA (legacy, no-op broadcast) ────────────────
+          // Kept only to avoid crashes if an older frontend still emits it.
+          // Newer clients use `session:code_update` with full text sync.
+          socket.on("session:code_delta", (data) => {
+            try {
+              const { sessionId } = data || {};
+              if (!sessionId) return;
+              // Do not mutate room state here anymore.
+            } catch (err) {
+              console.error("session:code_delta error:", err);
             }
-          } catch (dbErr) {
-            console.error("Error loading languageCode on join:", dbErr);
-          }
-        }
+          });
 
-        // Send initial state back to the joining user
-        socket.emit("session:state", {
+          // ─── SESSION:CODE_UPDATE ──────────────────────────────
+          // Simple, robust full-text sync: the sender posts the full code
+          // string, we store it in the room and broadcast to all peers.
+          socket.on("session:code_update", (data) => {
+            try {
+              const { sessionId, code, userId, userName } = data || {};
+              if (!sessionId || typeof code !== "string") return;
+
+              const room = getSessionRoom(sessionId);
+              room.code = code;
+
+              socket.to(sessionId).emit("session:code_update", {
+                sessionId,
+                code,
+                userId,
+                userName,
+                senderSocketId: socket.id,
+              });
+            } catch (err) {
+              console.error("session:code_update error:", err);
+            }
+          });
           code: room.code,
           language: room.language,
           languageCode: room.languageCode,
