@@ -111,6 +111,18 @@ function SessionPage() {
 
   const [code, setCode] = useState("");
 
+  // Refs to always have the latest language and code inside effects
+  const selectedLanguageRef = useRef(selectedLanguage);
+  const codeRef = useRef(code);
+
+  useEffect(() => {
+    selectedLanguageRef.current = selectedLanguage;
+  }, [selectedLanguage]);
+
+  useEffect(() => {
+    codeRef.current = code;
+  }, [code]);
+
   // Real-time collaboration
   const {
     remoteCode,
@@ -154,20 +166,28 @@ function SessionPage() {
   }, [remoteCode, code]);
 
   // Apply remote language changes and, if available, the corresponding code
-  // snapshot provided by the host via savedCode.
+  // snapshot provided by the host via savedCode. This runs only when the
+  // server tells us the language has changed (initial state or another user),
+  // so local manual language switches are not overridden.
   useEffect(() => {
-    if (remoteLanguage && remoteLanguage !== selectedLanguage) {
-      // Save current code under old language before switching
-      setLanguageCode((prev) => ({
-        ...prev,
-        [selectedLanguage]: code,
-      }));
-      setSelectedLanguage(remoteLanguage);
-      if (remoteSavedCode !== null && remoteSavedCode !== undefined) {
-        setCode(remoteSavedCode);
-      }
+    if (!remoteLanguage) return;
+
+    const currentLang = selectedLanguageRef.current;
+    const currentCode = codeRef.current;
+
+    if (remoteLanguage === currentLang) return;
+
+    setLanguageCode((prev) => ({
+      ...prev,
+      [currentLang]: currentCode,
+    }));
+
+    setSelectedLanguage(remoteLanguage);
+
+    if (remoteSavedCode !== null && remoteSavedCode !== undefined) {
+      setCode(remoteSavedCode);
     }
-  }, [remoteLanguage, remoteSavedCode, selectedLanguage, code]);
+  }, [remoteLanguage, remoteSavedCode, setLanguageCode]);
 
   // Reset trackers whenever we navigate to a different session.
   useEffect(() => {
@@ -710,12 +730,10 @@ function SessionPage() {
               <Panel defaultSize={65} minSize={30}>
                 <CollaborativeEditor
                   selectedLanguage={selectedLanguage}
-                  code={code}
                   isRunning={isRunning}
                   isAutoSaving={isAutoSaving}
                   lastSaved={lastSaved}
                   onLanguageChange={handleLanguageChange}
-                  onCodeChange={handleCodeChange}
                   onRunCode={handleRunCode}
                   canEdit={canEdit}
                   cursors={cursors}
@@ -833,12 +851,10 @@ function SessionPage() {
           <div className={`h-full ${mobileTab !== "editor" ? "hidden" : ""}`}>
             <CollaborativeEditor
               selectedLanguage={selectedLanguage}
-              code={code}
               isRunning={isRunning}
               isAutoSaving={isAutoSaving}
               lastSaved={lastSaved}
               onLanguageChange={handleLanguageChange}
-              onCodeChange={handleCodeChange}
               onRunCode={handleRunCode}
               canEdit={canEdit}
               cursors={cursors}

@@ -11,13 +11,11 @@ import { useSocket } from "../context/SocketContext";
  */
 function CollaborativeEditor({
   selectedLanguage,
-  code,
   isRunning,
   isSaving,
   isAutoSaving,
   lastSaved,
   onLanguageChange,
-  onCodeChange,
   onRunCode,
   onSubmitCode,
   // Collaboration props
@@ -37,19 +35,14 @@ function CollaborativeEditor({
   const prevLanguageRef = useRef(selectedLanguage);
   const isRemoteUpdateRef = useRef(false);
 
-  // Keep code prop in a ref for language-change effect (avoids re-running effect on every keystroke)
-  const codeRef = useRef(code);
-  codeRef.current = code;
-
-  // When language changes, replace editor content with new code for that language
-  // using the controlled code prop.
+  // When language changes, we can adjust editor behavior without recreating it.
   useEffect(() => {
     if (prevLanguageRef.current === selectedLanguage) return;
     prevLanguageRef.current = selectedLanguage;
 
     // Directly set model content for the new language
     const editor = editorRef.current;
-    if (editor && typeof codeRef.current === "string") {
+    if (editor) {
       const model = editor.getModel();
       if (model) {
         const previousSelection = editor.getSelection();
@@ -60,7 +53,7 @@ function CollaborativeEditor({
         editor.executeEdits("language-change", [
           {
             range: fullRange,
-            text: codeRef.current,
+            text: model.getValue(),
             forceMoveMarkers: true,
           },
         ]);
@@ -74,7 +67,7 @@ function CollaborativeEditor({
         }
       }
     }
-  }, [selectedLanguage, sessionId]);
+  }, [selectedLanguage]);
 
   const handleEditorDidMount = (editor, monaco) => {
     editorRef.current = editor;
@@ -144,14 +137,9 @@ function CollaborativeEditor({
     // Listen for content changes to emit Monaco deltas and update parent code
     editor.onDidChangeModelContent((event) => {
       const model = editor.getModel();
-      const newValue = model ? model.getValue() : "";
-
       if (isRemoteUpdateRef.current) {
         return;
       }
-
-      // Local change: push new value up and emit deltas
-      onCodeChange?.(newValue);
 
       if (!sessionId || !isConnected) return;
       const changes = event.changes || [];
@@ -224,29 +212,8 @@ function CollaborativeEditor({
     }
   }, [isDark]);
 
-  // One-time initial content sync from code prop when the model is empty.
-  // After that, Monaco is the source of truth and sync happens via deltas.
-  useEffect(() => {
-    if (!editorRef.current) return;
-    const model = editorRef.current.getModel();
-    if (!model) return;
-
-    if (typeof code === "string") {
-      const editor = editorRef.current;
-      const fullRange = model.getFullModelRange();
-
-      isRemoteUpdateRef.current = true;
-      editor.executeEdits("initial-sync", [
-        {
-          range: fullRange,
-          text: code,
-          forceMoveMarkers: true,
-        },
-      ]);
-      editor.pushUndoStop();
-      isRemoteUpdateRef.current = false;
-    }
-  }, [code]);
+  // Initial sync effect intentionally left empty: Monaco starts from its own
+  // model value and is driven solely by local edits and remote deltas.
 
   // Apply remote deltas from other collaborators using Monaco executeEdits
   useEffect(() => {
@@ -279,10 +246,29 @@ function CollaborativeEditor({
 
       if (!edits.length) return;
 
+      // Ensure remote updates apply even when this editor is read-only
+      // (view-only participants). Temporarily disable readOnly just for
+      // the programmatic edit, then restore it.
+      let wasReadOnly = false;
+      try {
+        const rawOptions = editor.getRawOptions ? editor.getRawOptions() : {};
+        wasReadOnly = !!rawOptions.readOnly;
+      } catch {
+        wasReadOnly = false;
+      }
+
+      if (wasReadOnly) {
+        editor.updateOptions({ readOnly: false });
+      }
+
       isRemoteUpdateRef.current = true;
       editor.executeEdits("remote", edits);
       editor.pushUndoStop();
       isRemoteUpdateRef.current = false;
+
+      if (wasReadOnly) {
+        editor.updateOptions({ readOnly: true });
+      }
     };
 
     console.log("LISTENER ATTACHED");
@@ -425,7 +411,6 @@ function CollaborativeEditor({
         <Editor
           height="100%"
           language={LANGUAGE_CONFIG[selectedLanguage]?.monacoLang || "javascript"}
-          defaultValue={code}
           theme={isDark ? "collab-dark" : "collab-light"}
           onMount={handleEditorDidMount}
           options={{
