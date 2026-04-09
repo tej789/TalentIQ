@@ -173,7 +173,6 @@ export function useCollaboration(sessionId, userId, userName, userImage, isHost)
     };
 
     on("session:state", handleState);
-    on("session:code_update", handleCodeUpdate);
     on("session:cursor_update", handleCursorUpdate);
     on("session:language_change", handleLanguageChange);
     on("session:user_joined", handleUserJoined);
@@ -188,7 +187,6 @@ export function useCollaboration(sessionId, userId, userName, userImage, isHost)
 
     return () => {
       off("session:state", handleState);
-      off("session:code_update", handleCodeUpdate);
       off("session:cursor_update", handleCursorUpdate);
       off("session:language_change", handleLanguageChange);
       off("session:user_joined", handleUserJoined);
@@ -202,30 +200,6 @@ export function useCollaboration(sessionId, userId, userName, userImage, isHost)
       off("session:join_rejected", handleJoinRejected);
     };
   }, [socket, on, off, userId]);
-
-  // ── Send code update ──
-  // Debounced broadcast of full document text to the session room.
-  const sendCodeUpdate = useCallback(
-    (code) => {
-      if (!isConnected || !sessionId) return;
-
-      lastSentCodeRef.current = code;
-
-      if (codeUpdateTimerRef.current) {
-        clearTimeout(codeUpdateTimerRef.current);
-      }
-
-      codeUpdateTimerRef.current = setTimeout(() => {
-        emit("session:code_update", {
-          sessionId,
-          code: lastSentCodeRef.current,
-          userId,
-          userName,
-        });
-      }, 150);
-    },
-    [isConnected, sessionId, userId, userName, emit]
-  );
 
   // Send cursor position
   const sendCursorUpdate = useCallback(
@@ -349,7 +323,6 @@ export function useCollaboration(sessionId, userId, userName, userImage, isHost)
     isConnected,
 
     // Actions
-    sendCodeUpdate,
     sendCursorUpdate,
     sendLanguageChange,
     setLanguageCode,

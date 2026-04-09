@@ -126,7 +126,6 @@ function SessionPage() {
     sessionEnded,
     joinRejected,
     isConnected: socketConnected,
-    sendCodeUpdate,
     sendCursorUpdate,
     sendLanguageChange,
     setLanguageCode,
@@ -352,7 +351,6 @@ function SessionPage() {
   const handleCodeChange = useCallback(
     (newCode) => {
       setCode(newCode);
-      sendCodeUpdate(newCode);
 
       // Debounced auto-save: save after 2s of inactivity
       if (autoSaveTimerRef.current) {
@@ -368,7 +366,7 @@ function SessionPage() {
         }, 500);
       }, 2000);
     },
-    [sendCodeUpdate, saveCode]
+    [saveCode]
   );
 
   const handleCursorUpdate = useCallback(

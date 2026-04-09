@@ -27,6 +27,25 @@ function getRandomColor() {
   return CURSOR_COLORS[Math.floor(Math.random() * CURSOR_COLORS.length)];
 }
 
+// Apply Monaco-style content changes (with rangeOffset/rangeLength/text)
+// to a plain string. Changes are applied in the order received.
+function applyTextChanges(baseText, changes) {
+  if (!Array.isArray(changes) || !changes.length) return baseText;
+
+  let text = baseText ?? "";
+  for (const change of changes) {
+    const { rangeOffset, rangeLength, text: insertText } = change || {};
+    if (typeof rangeOffset !== "number" || typeof rangeLength !== "number") {
+      continue;
+    }
+    const before = text.slice(0, rangeOffset);
+    const after = text.slice(rangeOffset + rangeLength);
+    text = before + (insertText ?? "") + after;
+  }
+
+  return text;
+}
+
 function getSessionRoom(sessionId) {
   if (!sessionRooms.has(sessionId)) {
     sessionRooms.set(sessionId, {
@@ -158,26 +177,25 @@ export function initializeSocket(httpServer) {
       }
     });
 
-    // ─── SESSION:CODE_UPDATE ─────────────────────────
-    // Primary real-time code sync channel. The host and participants
-    // broadcast full document updates to all other users in the room.
-    socket.on("session:code_update", async (data) => {
+    // ─── SESSION:CODE_DELTA ─────────────────────────
+    // Delta-based code sync using Monaco's change objects. Updates the
+    // in-memory room.code string and broadcasts the same deltas to peers.
+    socket.on("session:code_delta", (data) => {
       try {
-        const { sessionId, code, userId, userName } = data;
-        if (!sessionId) return;
+        const { sessionId, changes, userId, userName } = data || {};
+        if (!sessionId || !Array.isArray(changes)) return;
 
         const room = getSessionRoom(sessionId);
-        room.code = code;
+        room.code = applyTextChanges(room.code, changes);
 
-        // Broadcast updated code to all other collaborators in the same room
-        socket.to(sessionId).emit("session:code_update", {
+        socket.to(sessionId).emit("session:code_delta", {
           sessionId,
-          code,
+          changes,
           userId,
           userName,
         });
       } catch (err) {
-        console.error("session:code_update error:", err);
+        console.error("session:code_delta error:", err);
       }
     });
 
@@ -658,11 +676,8 @@ export function initializeSocket(httpServer) {
   // Periodic code save (every 30 seconds)
   setInterval(async () => {
     for (const [sessionId, room] of sessionRooms.entries()) {
-      // Prefer Yjs document text if available, fall back to room.code
-      const yjsText = getYjsRoomText(sessionId);
-      const codeToSave = yjsText || room.code;
+      const codeToSave = room.code;
       if (codeToSave) {
-        room.code = codeToSave; // keep in-memory room in sync
         // Also save under current language
         if (room.language) {
           room.languageCode[room.language] = codeToSave;

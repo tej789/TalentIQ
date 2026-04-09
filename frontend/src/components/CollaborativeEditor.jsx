@@ -3,6 +3,7 @@ import Editor from "@monaco-editor/react";
 import { Loader2Icon, PlayIcon, Save, Cloud, CloudOff, LockIcon, UnlockIcon } from "lucide-react";
 import { LANGUAGE_CONFIG } from "../data/problems";
 import { useTheme } from "../context/ThemeContext";
+import { useSocket } from "../context/SocketContext";
 
 /**
  * CollaborativeEditor wraps Monaco Editor with real-time
@@ -28,12 +29,13 @@ function CollaborativeEditor({
   sessionId,
 }) {
   const { isDark } = useTheme();
+  const { socket, emit, isConnected } = useSocket();
   const editorRef = useRef(null);
   const monacoRef = useRef(null);
   const decorationsRef = useRef([]);
   const [editorReady, setEditorReady] = useState(false);
   const prevLanguageRef = useRef(selectedLanguage);
-  const suppressChangeRef = useRef(false);
+  const isRemoteUpdateRef = useRef(false);
 
   // Keep code prop in a ref for language-change effect (avoids re-running effect on every keystroke)
   const codeRef = useRef(code);
@@ -47,11 +49,29 @@ function CollaborativeEditor({
 
     // Directly set model content for the new language
     const editor = editorRef.current;
-    if (editor && codeRef.current) {
+    if (editor && typeof codeRef.current === "string") {
       const model = editor.getModel();
       if (model) {
-        suppressChangeRef.current = true;
-        model.setValue(codeRef.current);
+        const previousSelection = editor.getSelection();
+        const previousPosition = editor.getPosition();
+        const fullRange = model.getFullModelRange();
+
+        isRemoteUpdateRef.current = true;
+        editor.executeEdits("language-change", [
+          {
+            range: fullRange,
+            text: codeRef.current,
+            forceMoveMarkers: true,
+          },
+        ]);
+        isRemoteUpdateRef.current = false;
+
+        if (previousSelection) {
+          editor.setSelection(previousSelection);
+        }
+        if (previousPosition) {
+          editor.setPosition(previousPosition);
+        }
       }
     }
   }, [selectedLanguage, sessionId]);
@@ -121,23 +141,32 @@ function CollaborativeEditor({
       }
     });
 
-    setEditorReady(true);
-  };
+    // Listen for content changes to emit Monaco deltas and update parent code
+    editor.onDidChangeModelContent((event) => {
+      const model = editor.getModel();
+      const newValue = model ? model.getValue() : "";
 
-  // Handle user-initiated code changes only. Remote updates coming from
-  // Socket.IO set suppressChangeRef to avoid echoing changes back.
-  const handleEditorChange = useCallback(
-    (value) => {
-      if (suppressChangeRef.current) {
-        suppressChangeRef.current = false;
+      if (isRemoteUpdateRef.current) {
+        // Remote update: update local code state but do NOT emit back over socket
+        onCodeChange?.(newValue);
         return;
       }
-      if (value !== undefined) {
-        onCodeChange?.(value);
-      }
-    },
-    [onCodeChange]
-  );
+
+      // Local change: push new value up and emit deltas
+      onCodeChange?.(newValue);
+
+      if (!sessionId || !isConnected) return;
+      const changes = event.changes || [];
+      if (!changes.length) return;
+
+      emit("session:code_delta", {
+        sessionId,
+        changes,
+      });
+    });
+
+    setEditorReady(true);
+  };
 
   // Update readOnly when canEdit changes (without recreating editor)
   useEffect(() => {
@@ -205,10 +234,72 @@ function CollaborativeEditor({
 
     const currentValue = model.getValue();
     if (typeof code === "string" && code !== currentValue) {
-      suppressChangeRef.current = true;
-      model.setValue(code);
+      const editor = editorRef.current;
+      const previousSelection = editor.getSelection();
+      const previousPosition = editor.getPosition();
+      const fullRange = model.getFullModelRange();
+
+      isRemoteUpdateRef.current = true;
+      editor.executeEdits("prop-sync", [
+        {
+          range: fullRange,
+          text: code,
+          forceMoveMarkers: true,
+        },
+      ]);
+      isRemoteUpdateRef.current = false;
+
+      if (previousSelection) {
+        editor.setSelection(previousSelection);
+      }
+      if (previousPosition) {
+        editor.setPosition(previousPosition);
+      }
     }
   }, [code]);
+
+  // Apply remote deltas from other collaborators using Monaco executeEdits
+  useEffect(() => {
+    if (!socket || !sessionId) return;
+
+    const handleCodeDelta = (data) => {
+      if (!data || data.sessionId !== sessionId) return;
+      const { changes } = data;
+      const editor = editorRef.current;
+      const monaco = monacoRef.current;
+      if (!editor || !monaco || !Array.isArray(changes) || !changes.length) return;
+
+      const model = editor.getModel();
+      if (!model) return;
+
+      const edits = changes.map((change) => {
+        const { range, text } = change || {};
+        if (!range) return null;
+        const safeRange = new monaco.Range(
+          range.startLineNumber,
+          range.startColumn,
+          range.endLineNumber,
+          range.endColumn
+        );
+        return {
+          range: safeRange,
+          text: text ?? "",
+          forceMoveMarkers: true,
+        };
+      }).filter(Boolean);
+
+      if (!edits.length) return;
+
+      isRemoteUpdateRef.current = true;
+      editor.executeEdits("remote", edits);
+      isRemoteUpdateRef.current = false;
+    };
+
+    socket.on("session:code_delta", handleCodeDelta);
+    return () => {
+      socket.off("session:code_delta", handleCodeDelta);
+    };
+  }, [socket, sessionId]);
 
   return (
     <div className="collab-editor-panel">
@@ -345,7 +436,6 @@ function CollaborativeEditor({
           defaultValue={code}
           theme={isDark ? "collab-dark" : "collab-light"}
           onMount={handleEditorDidMount}
-          onChange={handleEditorChange}
           options={{
             readOnly: !canEdit,
             fontSize: 14,
