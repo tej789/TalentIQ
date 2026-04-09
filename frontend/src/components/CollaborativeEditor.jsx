@@ -147,8 +147,6 @@ function CollaborativeEditor({
       const newValue = model ? model.getValue() : "";
 
       if (isRemoteUpdateRef.current) {
-        // Remote update: update local code state but do NOT emit back over socket
-        onCodeChange?.(newValue);
         return;
       }
 
@@ -226,80 +224,74 @@ function CollaborativeEditor({
     }
   }, [isDark]);
 
-  // Keep Monaco model in sync with the latest code prop (including remote updates)
+  // One-time initial content sync from code prop when the model is empty.
+  // After that, Monaco is the source of truth and sync happens via deltas.
   useEffect(() => {
     if (!editorRef.current) return;
     const model = editorRef.current.getModel();
     if (!model) return;
 
-    const currentValue = model.getValue();
-    if (typeof code === "string" && code !== currentValue) {
+    if (typeof code === "string") {
       const editor = editorRef.current;
-      const previousSelection = editor.getSelection();
-      const previousPosition = editor.getPosition();
       const fullRange = model.getFullModelRange();
 
       isRemoteUpdateRef.current = true;
-      editor.executeEdits("prop-sync", [
+      editor.executeEdits("initial-sync", [
         {
           range: fullRange,
           text: code,
           forceMoveMarkers: true,
         },
       ]);
+      editor.pushUndoStop();
       isRemoteUpdateRef.current = false;
-
-      if (previousSelection) {
-        editor.setSelection(previousSelection);
-      }
-      if (previousPosition) {
-        editor.setPosition(previousPosition);
-      }
     }
   }, [code]);
 
   // Apply remote deltas from other collaborators using Monaco executeEdits
   useEffect(() => {
-    if (!socket || !sessionId) return;
+    if (!socket || !sessionId || !editorReady) return;
 
     const handleCodeDelta = (data) => {
       if (!data || data.sessionId !== sessionId) return;
-      const { changes } = data;
+      const { changes, senderSocketId } = data;
+
+      // Ignore our own events if they somehow arrive
+      if (senderSocketId && socket && senderSocketId === socket.id) {
+        return;
+      }
       const editor = editorRef.current;
-      const monaco = monacoRef.current;
-      if (!editor || !monaco || !Array.isArray(changes) || !changes.length) return;
+      if (!editor || !Array.isArray(changes) || !changes.length) return;
 
-      const model = editor.getModel();
-      if (!model) return;
+      console.log("RECEIVED UPDATE", { changes, from: senderSocketId });
 
-      const edits = changes.map((change) => {
-        const { range, text } = change || {};
-        if (!range) return null;
-        const safeRange = new monaco.Range(
-          range.startLineNumber,
-          range.startColumn,
-          range.endLineNumber,
-          range.endColumn
-        );
-        return {
-          range: safeRange,
-          text: text ?? "",
-          forceMoveMarkers: true,
-        };
-      }).filter(Boolean);
+      const edits = changes
+        .map((change) => {
+          const { range, text } = change || {};
+          if (!range) return null;
+          return {
+            range,
+            text: text ?? "",
+            forceMoveMarkers: true,
+          };
+        })
+        .filter(Boolean);
 
       if (!edits.length) return;
 
       isRemoteUpdateRef.current = true;
       editor.executeEdits("remote", edits);
+      editor.pushUndoStop();
       isRemoteUpdateRef.current = false;
     };
 
+    console.log("LISTENER ATTACHED");
+    socket.off("session:code_delta");
     socket.on("session:code_delta", handleCodeDelta);
     return () => {
       socket.off("session:code_delta", handleCodeDelta);
     };
-  }, [socket, sessionId]);
+  }, [socket, sessionId, editorReady]);
 
   return (
     <div className="collab-editor-panel">

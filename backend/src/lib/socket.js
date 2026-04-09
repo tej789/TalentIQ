@@ -193,6 +193,7 @@ export function initializeSocket(httpServer) {
           changes,
           userId,
           userName,
+          senderSocketId: socket.id,
         });
       } catch (err) {
         console.error("session:code_delta error:", err);
