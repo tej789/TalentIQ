@@ -120,42 +120,14 @@ export function initializeSocket(httpServer) {
 
         // ── Track user in connectedUsers ──
         room.connectedUsers.set(socket.id, {
-          // 
-          // ─── SESSION:CODE_DELTA (legacy, no-op broadcast) ────────────────
-          // Kept only to avoid crashes if an older frontend still emits it.
-          // Newer clients use `session:code_update` with full text sync.
-          socket.on("session:code_delta", (data) => {
-            try {
-              const { sessionId } = data || {};
-              if (!sessionId) return;
-              // Do not mutate room state here anymore.
-            } catch (err) {
-              console.error("session:code_delta error:", err);
-            }
-          });
+          userId,
+          userName,
+          userImage,
+          color: getRandomColor(),
+        });
 
-          // ─── SESSION:CODE_UPDATE ──────────────────────────────
-          // Simple, robust full-text sync: the sender posts the full code
-          // string, we store it in the room and broadcast to all peers.
-          socket.on("session:code_update", (data) => {
-            try {
-              const { sessionId, code, userId, userName } = data || {};
-              if (!sessionId || typeof code !== "string") return;
-
-              const room = getSessionRoom(sessionId);
-              room.code = code;
-
-              socket.to(sessionId).emit("session:code_update", {
-                sessionId,
-                code,
-                userId,
-                userName,
-                senderSocketId: socket.id,
-              });
-            } catch (err) {
-              console.error("session:code_update error:", err);
-            }
-          });
+        // Send initial state back to the joining user
+        socket.emit("session:state", {
           code: room.code,
           language: room.language,
           languageCode: room.languageCode,
@@ -190,26 +162,38 @@ export function initializeSocket(httpServer) {
       }
     });
 
-    // ─── SESSION:CODE_DELTA ─────────────────────────
-    // Delta-based code sync using Monaco's change objects. Updates the
-    // in-memory room.code string and broadcasts the same deltas to peers.
+    // ─── SESSION:CODE_DELTA (legacy, no-op) ─────────────────
+    // Kept only to avoid crashes if an older frontend still emits it.
     socket.on("session:code_delta", (data) => {
       try {
-        const { sessionId, changes, userId, userName } = data || {};
-        if (!sessionId || !Array.isArray(changes)) return;
+        const { sessionId } = data || {};
+        if (!sessionId) return;
+        // No further action; new clients use session:code_update.
+      } catch (err) {
+        console.error("session:code_delta error:", err);
+      }
+    });
+
+    // ─── SESSION:CODE_UPDATE ──────────────────────────────
+    // Simple, robust full-text sync: the sender posts the full code
+    // string, we store it in the room and broadcast to all peers.
+    socket.on("session:code_update", (data) => {
+      try {
+        const { sessionId, code, userId, userName } = data || {};
+        if (!sessionId || typeof code !== "string") return;
 
         const room = getSessionRoom(sessionId);
-        room.code = applyTextChanges(room.code, changes);
+        room.code = code;
 
-        socket.to(sessionId).emit("session:code_delta", {
+        socket.to(sessionId).emit("session:code_update", {
           sessionId,
-          changes,
+          code,
           userId,
           userName,
           senderSocketId: socket.id,
         });
       } catch (err) {
-        console.error("session:code_delta error:", err);
+        console.error("session:code_update error:", err);
       }
     });
 
