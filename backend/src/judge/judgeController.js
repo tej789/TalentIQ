@@ -108,6 +108,9 @@ function buildWrapperCode(language, userCode, functionName, inputs, returnType) 
 async function submitToJudge0(sourceCode, languageId) {
   const rapidApiKey = process.env.RAPID_API_KEY;
 
+  // TEMP DEBUG: verify key is loaded (do not log full secret)
+  console.log('🔑 RAPID_API_KEY loaded:', !!rapidApiKey, 'len:', rapidApiKey ? rapidApiKey.length : 0);
+
   if (!rapidApiKey) {
     throw new Error('RAPID_API_KEY is not configured on the backend');
   }
