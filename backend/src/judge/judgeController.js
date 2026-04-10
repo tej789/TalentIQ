@@ -27,6 +27,9 @@ const LANGUAGE_ID_MAP = {
   java: 62,
 };
 
+// Simple async delay helper (used to throttle Judge0 calls)
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
 /**
  * Extract function name from user code based on language
  * 
@@ -319,6 +322,10 @@ export async function runCode(req, res) {
     const results = [];
     
     for (let i = 0; i < examples.length; i++) {
+      // Throttle Judge0 calls to reduce 429 rate-limit errors
+      if (i > 0) {
+        await sleep(1000);
+      }
       const example = examples[i];
       const inputs = parseInputs(example.input);
       
@@ -430,6 +437,10 @@ export async function submitCode(req, res) {
     let verdict = 'Accepted';
     
     for (let i = 0; i < testCases.length; i++) {
+      // Throttle Judge0 calls to reduce 429 rate-limit errors
+      if (i > 0) {
+        await sleep(1000);
+      }
       const testCase = testCases[i];
       const inputs = parseInputs(testCase.input);
       
