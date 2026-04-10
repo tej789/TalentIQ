@@ -2,7 +2,8 @@ import CodeDraft from "../models/CodeDraft.js";
 import Problem from "../models/Problem.js";
 import axios from "axios";
 
-const JUDGE0_API_HOST = "judge0-ce.p.rapidapi.com";
+// Public Judge0 CE instance (no API key required)
+const JUDGE0_API_HOST = "judge0-ce.p.sulu.sh";
 const JUDGE0_BASE_URL = `https://${JUDGE0_API_HOST}`;
 
 // Map our language strings to Judge0 language IDs
@@ -102,14 +103,6 @@ export const saveCodeDraft = async (req, res) => {
  */
 export const runCodeExecution = async (req, res) => {
   try {
-    const rapidApiKey = process.env.RAPID_API_KEY;
-
-    if (!rapidApiKey) {
-      return res.status(500).json({
-        message: "RAPID_API_KEY is not configured on the backend",
-      });
-    }
-
     const {
       source_code,
       language_id,
@@ -154,8 +147,6 @@ export const runCodeExecution = async (req, res) => {
 
     const response = await axios.post(url, payload, {
       headers: {
-        "X-RapidAPI-Key": rapidApiKey,
-        "X-RapidAPI-Host": JUDGE0_API_HOST,
         "Content-Type": "application/json",
       },
     });
@@ -180,12 +171,6 @@ export const runCodeExecution = async (req, res) => {
     const status = error.response?.status || 500;
     const data = error.response?.data || { message: error.message };
 
-    if (status === 429) {
-      return res.status(429).json({
-        message: "API limit exceeded. Try later.",
-      });
-    }
-
     return res.status(status).json({
       message: "Failed to run code via Judge0",
       error: data,
@@ -202,14 +187,6 @@ export const runCodeExecution = async (req, res) => {
  */
 export const getCodeExecutionResult = async (req, res) => {
   try {
-    const rapidApiKey = process.env.RAPID_API_KEY;
-
-    if (!rapidApiKey) {
-      return res.status(500).json({
-        message: "RAPID_API_KEY is not configured on the backend",
-      });
-    }
-
     const { token } = req.params;
 
     if (!token) {
@@ -222,8 +199,7 @@ export const getCodeExecutionResult = async (req, res) => {
 
     const response = await axios.get(url, {
       headers: {
-        "X-RapidAPI-Key": rapidApiKey,
-        "X-RapidAPI-Host": JUDGE0_API_HOST,
+        "Content-Type": "application/json",
       },
     });
 
@@ -247,12 +223,6 @@ export const getCodeExecutionResult = async (req, res) => {
 
     const status = error.response?.status || 500;
     const data = error.response?.data || { message: error.message };
-
-    if (status === 429) {
-      return res.status(429).json({
-        message: "API limit exceeded. Try later.",
-      });
-    }
 
     return res.status(status).json({
       message: "Failed to fetch Judge0 result",

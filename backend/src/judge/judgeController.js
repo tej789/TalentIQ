@@ -17,7 +17,8 @@ import { generateJavaWrapper } from './javaExecutor.js';
 import { compareOutputs, normalizeOutput } from './outputComparator.js';
 import { parseInputToArgs } from './inputParser.js';
 
-const JUDGE0_API_HOST = 'judge0-ce.p.rapidapi.com';
+// Public Judge0 CE instance (no API key required)
+const JUDGE0_API_HOST = 'judge0-ce.p.sulu.sh';
 const JUDGE0_BASE_URL = `https://${JUDGE0_API_HOST}`;
 
 // Map our internal language strings to Judge0 language IDs
@@ -109,18 +110,7 @@ function buildWrapperCode(language, userCode, functionName, inputs, returnType) 
 }
 
 async function submitToJudge0(sourceCode, languageId) {
-  const rapidApiKey = process.env.RAPID_API_KEY;
-  // TEMP DEBUG: verify key and host (remove in production)
-  console.log("🔥 KEY:", process.env.RAPID_API_KEY);
-  console.log("🔥 HOST:", JUDGE0_API_HOST);
-
-  if (!rapidApiKey) {
-    throw new Error('RAPID_API_KEY is not configured on the backend');
-  }
-
   const headers = {
-    'X-RapidAPI-Key': rapidApiKey,
-    'X-RapidAPI-Host': JUDGE0_API_HOST,
     'Content-Type': 'application/json',
   };
 
