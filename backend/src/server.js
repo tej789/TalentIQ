@@ -30,9 +30,12 @@ const __dirname = path.resolve();
 // middleware
 app.use(express.json());
 
-// ✅ Simple, permissive CORS for debugging
+// ✅ CORS: lock down to known frontends
 app.use(cors({
-  origin: true,
+  origin: [
+    "http://localhost:5173",
+    "https://talent-iq-blue.vercel.app",
+  ],
   credentials: true,
 }));
 

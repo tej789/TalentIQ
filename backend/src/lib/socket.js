@@ -60,15 +60,12 @@ function getSessionRoom(sessionId) {
 }
 
 export function initializeSocket(httpServer) {
-  const allowedOrigins = [
-    ENV.CLIENT_URL,
-    "http://localhost:5173",
-    "https://localhost:5173",
-  ].filter(Boolean);
-
   io = new Server(httpServer, {
     cors: {
-      origin: allowedOrigins,
+      origin: [
+        "http://localhost:5173",
+        "https://talent-iq-blue.vercel.app",
+      ],
       methods: ["GET", "POST"],
       credentials: true,
     },
