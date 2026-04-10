@@ -17,36 +17,39 @@
  */
 export function generateJSWrapper(userCode, functionName, inputs) {
   // Parse inputs and create argument string
-  const args = inputs.map(input => {
-    // Input is already JSON string, parse and re-stringify for safety
-    try {
-      const parsed = JSON.parse(input);
-      export default { generateJSWrapper };
-    }
+  const args = inputs
+    .map((input) => {
+      // Input is already a JSON string; parse and re-stringify for safety
+      try {
+        const parsed = JSON.parse(input);
+        return JSON.stringify(parsed);
+      } catch {
+        // If not valid JSON, treat as string
+        return JSON.stringify(input);
+      }
+    })
+    .join(', ');
+
+  return `
+// ==================== USER CODE START ====================
+${userCode}
+// ==================== USER CODE END ====================
+
+// ==================== JUDGE WRAPPER ====================
+(function() {
+  try {
+    // Call user's function with test case inputs
+    const result = ${functionName}(${args});
     
-    if (error.code === 1) {
-      return {
-        success: false,
-        error: error.stderr || error.message,
-        type: 'runtime'
-      };
-    }
-    
-    return {
-      success: false,
-      error: error.message,
-      type: 'execution'
-    };
-    
-  } finally {
-    // Cleanup temp file
-    try {
-      await unlink(filePath);
-      console.log('🗑️ Cleaned up temp file');
-    } catch (cleanupError) {
-      console.log('⚠️ Cleanup warning:', cleanupError.message);
-    }
+    // Print the return value as JSON for comparison
+    console.log(JSON.stringify(result));
+  } catch (error) {
+    // Print error for debugging
+    console.error('RUNTIME_ERROR:', error.message);
+    process.exit(1);
   }
+})();
+`;
 }
 
-export default { generateJSWrapper, executeJS };
+export default { generateJSWrapper };
