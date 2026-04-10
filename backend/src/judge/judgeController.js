@@ -10,11 +10,22 @@
 
 import Problem from '../models/Problem.js';
 import Submission from '../models/Submission.js';
-import { executeJS } from './jsExecutor.js';
-import { executePython } from './pythonExecutor.js';
-import { executeJava } from './javaExecutor.js';
+import axios from 'axios';
+import { generateJSWrapper } from './jsExecutor.js';
+import { generatePythonWrapper } from './pythonExecutor.js';
+import { generateJavaWrapper } from './javaExecutor.js';
 import { compareOutputs, normalizeOutput } from './outputComparator.js';
 import { parseInputToArgs } from './inputParser.js';
+
+const JUDGE0_API_HOST = 'judge0-ce.p.rapidapi.com';
+const JUDGE0_BASE_URL = `https://${JUDGE0_API_HOST}`;
+
+// Map our internal language strings to Judge0 language IDs
+const LANGUAGE_ID_MAP = {
+  javascript: 63,
+  python: 71,
+  java: 62,
+};
 
 /**
  * Extract function name from user code based on language
@@ -78,6 +89,76 @@ function inferJavaReturnType(code, functionName) {
 }
 
 /**
+ * Build wrapper source code for Judge0 based execution.
+ * Reuses existing wrapper generators but no longer executes code locally.
+ */
+function buildWrapperCode(language, userCode, functionName, inputs, returnType) {
+  switch (language) {
+    case 'javascript':
+      return generateJSWrapper(userCode, functionName, inputs);
+    case 'python':
+      return generatePythonWrapper(userCode, functionName, inputs);
+    case 'java':
+      return generateJavaWrapper(userCode, functionName, inputs, returnType);
+    default:
+      return null;
+  }
+}
+
+async function submitToJudge0(sourceCode, languageId) {
+  const rapidApiKey = process.env.RAPID_API_KEY;
+
+  if (!rapidApiKey) {
+    throw new Error('RAPID_API_KEY is not configured on the backend');
+  }
+
+  const headers = {
+    'X-RapidAPI-Key': rapidApiKey,
+    'X-RapidAPI-Host': JUDGE0_API_HOST,
+    'Content-Type': 'application/json',
+  };
+
+  // Always use wait=false + polling to avoid long-held HTTP connections
+  const createRes = await axios.post(
+    `${JUDGE0_BASE_URL}/submissions?base64_encoded=false&wait=false`,
+    {
+      source_code: sourceCode,
+      language_id: languageId,
+    },
+    { headers }
+  );
+
+  const token = createRes.data?.token;
+  if (!token) {
+    throw new Error('Judge0 did not return a submission token');
+  }
+
+  const maxAttempts = 20; // ~10s with 500ms delay
+  const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+  let lastData = null;
+
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    const res = await axios.get(
+      `${JUDGE0_BASE_URL}/submissions/${encodeURIComponent(token)}?base64_encoded=false`,
+      { headers }
+    );
+
+    lastData = res.data || {};
+    const statusId = lastData.status?.id;
+
+    // 1 = In Queue, 2 = Processing; anything else is terminal
+    if (statusId && statusId !== 1 && statusId !== 2) {
+      break;
+    }
+
+    await delay(500);
+  }
+
+  return { token, data: lastData };
+}
+
+/**
  * Execute code against a single test case
  * 
  * @param {string} code - User's code
@@ -91,28 +172,65 @@ async function executeCode(code, language, inputs, functionName, returnType = 'i
   console.log(`🔧 Executing ${language} code, function: ${functionName}`);
   
   try {
-    switch (language) {
-      case 'javascript':
-        console.log('📘 Calling JS executor...');
-        const jsResult = await executeJS(code, functionName, inputs);
-        console.log('📘 JS executor returned:', jsResult);
-        return jsResult;
-        
-      case 'python':
-        console.log('🐍 Calling Python executor...');
-        return await executePython(code, functionName, inputs);
-        
-      case 'java':
-        console.log('☕ Calling Java executor...');
-        return await executeJava(code, functionName, inputs, returnType);
-        
-      default:
-        return {
-          success: false,
-          error: `Unsupported language: ${language}`,
-          type: 'unsupported'
-        };
+    const normalizedLang = typeof language === 'string' ? language.toLowerCase() : '';
+    const languageId = LANGUAGE_ID_MAP[normalizedLang];
+
+    if (!languageId) {
+      return {
+        success: false,
+        error: `Unsupported language: ${language}`,
+        type: 'unsupported',
+      };
     }
+
+    const wrapperCode = buildWrapperCode(normalizedLang, code, functionName, inputs, returnType);
+
+    if (!wrapperCode) {
+      return {
+        success: false,
+        error: `Failed to build wrapper for language: ${language}`,
+        type: 'execution',
+      };
+    }
+
+    const { data } = await submitToJudge0(wrapperCode, languageId);
+
+    const stdout = (data.stdout || '').trim();
+    const stderr = (data.stderr || '').trim();
+    const compileOutput = (data.compile_output || '').trim();
+    const statusId = data.status?.id;
+
+    // Map Judge0 result to our internal execution result shape
+    if (compileOutput) {
+      return {
+        success: false,
+        error: `Compilation Error: ${compileOutput.split('\n')[0]}`,
+        type: 'compilation',
+      };
+    }
+
+    if (statusId === 5) {
+      // Time Limit Exceeded in Judge0
+      return {
+        success: false,
+        error: 'Time Limit Exceeded',
+        type: 'timeout',
+      };
+    }
+
+    if (stderr && !stdout) {
+      return {
+        success: false,
+        error: stderr,
+        type: 'runtime',
+      };
+    }
+
+    // Successful (or at least produced some stdout)
+    return {
+      success: true,
+      output: stdout,
+    };
   } catch (error) {
     console.error(`❌ Executor error for ${language}:`, error);
     return {
@@ -438,17 +556,69 @@ export async function sandboxExecute(req, res) {
       });
     }
 
-    const supported = ['javascript', 'python', 'java'];
-    if (!supported.includes(language)) {
+    const normalizedLang = typeof language === 'string' ? language.toLowerCase() : '';
+    const languageId = LANGUAGE_ID_MAP[normalizedLang];
+
+    if (!languageId) {
       return res.status(400).json({
         success: false,
-        error: `Unsupported language: ${language}. Supported: ${supported.join(', ')}`,
+        error: `Unsupported language: ${language}. Supported: ${Object.keys(LANGUAGE_ID_MAP).join(', ')}`,
       });
     }
 
-    const result = await executeSandbox(code, language);
+    try {
+      const { data } = await submitToJudge0(code, languageId);
 
-    return res.json(result);
+      const stdout = (data.stdout || '').trim();
+      const stderr = (data.stderr || '').trim();
+      const compileOutput = (data.compile_output || '').trim();
+      const statusId = data.status?.id;
+
+      if (compileOutput) {
+        return res.json({
+          success: false,
+          output: '',
+          error: `Compilation Error: ${compileOutput.split('\n')[0]}`,
+        });
+      }
+
+      if (statusId === 5) {
+        return res.json({
+          success: false,
+          output: '',
+          error: 'Time Limit Exceeded',
+        });
+      }
+
+      if (stderr && !stdout) {
+        return res.json({
+          success: false,
+          output: '',
+          error: stderr,
+        });
+      }
+
+      return res.json({
+        success: true,
+        output: stdout || 'No output',
+        error: stderr || null,
+      });
+    } catch (err) {
+      console.error('Sandbox Judge0 error:', err.response?.data || err.message);
+
+      const status = err.response?.status || 500;
+      if (status === 429) {
+        return res.status(429).json({
+          success: false,
+          error: 'API limit exceeded. Try later.',
+        });
+      }
+
+      return res.status(500).json({
+        success: false,
+        error: err.response?.data?.message || err.message || 'Failed to execute code via Judge0',
+      });
+    }
   } catch (error) {
     console.error('Sandbox execute error:', error);
     return res.status(500).json({
@@ -456,121 +626,6 @@ export async function sandboxExecute(req, res) {
       error: `Internal server error: ${error.message}`,
     });
   }
-}
-
-/**
- * Run raw code in a sandbox (no function wrapping, no test cases)
- */
-async function executeSandbox(code, language) {
-  const { exec } = await import('child_process');
-  const { writeFile, unlink, mkdir } = await import('fs/promises');
-  const { join, dirname } = await import('path');
-  const { fileURLToPath } = await import('url');
-  const { v4: uuidv4 } = await import('uuid');
-  const { promisify } = await import('util');
-
-  const execAsync = promisify(exec);
-  const currentDir = dirname(fileURLToPath(import.meta.url));
-  const TEMP_DIR = join(currentDir, '..', '..', 'temp', 'judge');
-  const TIMEOUT = 10000;
-
-  await mkdir(TEMP_DIR, { recursive: true });
-  const id = uuidv4();
-
-  if (language === 'javascript') {
-    const filePath = join(TEMP_DIR, `${id}.js`);
-    try {
-      await writeFile(filePath, code, 'utf8');
-      const { stdout, stderr } = await execAsync(`node "${filePath}"`, {
-        timeout: TIMEOUT,
-        maxBuffer: 1024 * 1024,
-      });
-      return {
-        success: true,
-        output: stdout || 'No output',
-        error: stderr || null,
-      };
-    } catch (err) {
-      if (err.killed) return { success: false, error: 'Time Limit Exceeded' };
-      return {
-        success: false,
-        output: err.stdout || '',
-        error: err.stderr || err.message,
-      };
-    } finally {
-      try { await unlink(filePath); } catch {}
-    }
-  }
-
-  if (language === 'python') {
-    const filePath = join(TEMP_DIR, `${id}.py`);
-    try {
-      await writeFile(filePath, code, 'utf8');
-      const { stdout, stderr } = await execAsync(`python "${filePath}"`, {
-        timeout: TIMEOUT,
-        maxBuffer: 1024 * 1024,
-      });
-      return {
-        success: true,
-        output: stdout || 'No output',
-        error: stderr || null,
-      };
-    } catch (err) {
-      if (err.killed) return { success: false, error: 'Time Limit Exceeded' };
-      return {
-        success: false,
-        output: err.stdout || '',
-        error: err.stderr || err.message,
-      };
-    } finally {
-      try { await unlink(filePath); } catch {}
-    }
-  }
-
-  if (language === 'java') {
-    const dirPath = join(TEMP_DIR, id);
-    const filePath = join(dirPath, 'Main.java');
-    try {
-      await mkdir(dirPath, { recursive: true });
-      // Wrap user code: if it doesn't have a class, put it in a Main class
-      let javaCode = code;
-      if (!code.includes('class ')) {
-        javaCode = `public class Main {\n  public static void main(String[] args) {\n${code}\n  }\n}`;
-      } else {
-        // Rename the public class to Main so filename matches
-        javaCode = code.replace(/public\s+class\s+\w+/, 'public class Main');
-      }
-      await writeFile(filePath, javaCode, 'utf8');
-
-      // Compile
-      await execAsync(`javac "${filePath}"`, { timeout: TIMEOUT });
-
-      // Run
-      const { stdout, stderr } = await execAsync(`java -cp "${dirPath}" Main`, {
-        timeout: TIMEOUT,
-        maxBuffer: 1024 * 1024,
-      });
-      return {
-        success: true,
-        output: stdout || 'No output',
-        error: stderr || null,
-      };
-    } catch (err) {
-      if (err.killed) return { success: false, error: 'Time Limit Exceeded' };
-      return {
-        success: false,
-        output: err.stdout || '',
-        error: err.stderr || err.message,
-      };
-    } finally {
-      try {
-        const { rm } = await import('fs/promises');
-        await rm(dirPath, { recursive: true, force: true });
-      } catch {}
-    }
-  }
-
-  return { success: false, error: `Unsupported language: ${language}` };
 }
 
 export default { runCode, submitCode, getSubmissions, sandboxExecute };
