@@ -18,7 +18,7 @@ import { compareOutputs, normalizeOutput } from './outputComparator.js';
 import { parseInputToArgs } from './inputParser.js';
 
 // Public Judge0 CE instance (no API key required)
-const JUDGE0_API_HOST = 'judge0-ce.p.sulu.sh';
+const JUDGE0_API_HOST = 'ce.judge0.com';
 const JUDGE0_BASE_URL = `https://${JUDGE0_API_HOST}`;
 
 // Map our internal language strings to Judge0 language IDs
