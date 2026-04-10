@@ -1,5 +1,16 @@
 import CodeDraft from "../models/CodeDraft.js";
 import Problem from "../models/Problem.js";
+import axios from "axios";
+
+const JUDGE0_API_HOST = "judge0-ce.p.rapidapi.com";
+const JUDGE0_BASE_URL = `https://${JUDGE0_API_HOST}`;
+
+// Map our language strings to Judge0 language IDs
+const languageMap = {
+  javascript: 63,
+  python: 71,
+  java: 62,
+};
 
 /**
  * Save Code Draft (Auto-Save)
@@ -75,6 +86,178 @@ export const saveCodeDraft = async (req, res) => {
   } catch (error) {
     console.error("Error in saveCodeDraft:", error);
     res.status(500).json({ message: "Failed to save draft" });
+  }
+};
+
+/**
+ * Run code via Judge0 (RapidAPI)
+ *
+ * @route   POST /api/code/run
+ * @desc    Create a Judge0 submission (optionally wait for result)
+ * @access  Private
+ *
+ * Body can be either:
+ * - { source_code, language_id, stdin?, wait? }
+ * - { code, languageId, input?, wait? }
+ */
+export const runCodeExecution = async (req, res) => {
+  try {
+    const rapidApiKey = process.env.RAPID_API_KEY;
+
+    if (!rapidApiKey) {
+      return res.status(500).json({
+        message: "RAPID_API_KEY is not configured on the backend",
+      });
+    }
+
+    const {
+      source_code,
+      language_id,
+      stdin,
+      // alternative field names
+      code,
+      languageId,
+      input,
+      language,
+    } = req.body || {};
+
+    const finalSource = source_code || code;
+
+    // Normalize language (e.g., "Python", "PYTHON" → "python")
+    const normalizedLang =
+      typeof language === "string" ? language.toLowerCase() : undefined;
+
+    const finalLanguageId =
+      language_id ||
+      languageId ||
+      (normalizedLang ? languageMap[normalizedLang] : undefined);
+    const finalStdin = stdin ?? input ?? null;
+
+    if (!finalSource || !finalLanguageId) {
+      return res.status(400).json({
+        message:
+          "source_code/code and language_id/languageId or language are required",
+      });
+    }
+
+    // Always use wait=false for safety; frontend should poll /result/:token
+    const url = `${JUDGE0_BASE_URL}/submissions?base64_encoded=false&wait=false`;
+
+    const payload = {
+      source_code: finalSource,
+      language_id: finalLanguageId,
+    };
+
+    if (finalStdin !== null && finalStdin !== undefined) {
+      payload.stdin = String(finalStdin);
+    }
+
+    const response = await axios.post(url, payload, {
+      headers: {
+        "X-RapidAPI-Key": rapidApiKey,
+        "X-RapidAPI-Host": JUDGE0_API_HOST,
+        "Content-Type": "application/json",
+      },
+    });
+
+    const data = response.data || {};
+
+    const output =
+      data.stdout || data.stderr || data.compile_output || null;
+
+    // For wait=false this mainly returns a token, but we keep a
+    // consistent, frontend-friendly shape.
+    return res.status(200).json({
+      token: data.token,
+      output,
+      error: data.stderr || null,
+      status: data.status?.description || null,
+      raw: data,
+    });
+  } catch (error) {
+    console.error("Error calling Judge0 /submissions:", error.response?.data || error.message);
+
+    const status = error.response?.status || 500;
+    const data = error.response?.data || { message: error.message };
+
+    if (status === 429) {
+      return res.status(429).json({
+        message: "API limit exceeded. Try later.",
+      });
+    }
+
+    return res.status(status).json({
+      message: "Failed to run code via Judge0",
+      error: data,
+    });
+  }
+};
+
+/**
+ * Get Judge0 submission result by token
+ *
+ * @route   GET /api/code/result/:token
+ * @desc    Fetch result for an existing Judge0 submission
+ * @access  Private
+ */
+export const getCodeExecutionResult = async (req, res) => {
+  try {
+    const rapidApiKey = process.env.RAPID_API_KEY;
+
+    if (!rapidApiKey) {
+      return res.status(500).json({
+        message: "RAPID_API_KEY is not configured on the backend",
+      });
+    }
+
+    const { token } = req.params;
+
+    if (!token) {
+      return res.status(400).json({ message: "Token is required" });
+    }
+
+    const url = `${JUDGE0_BASE_URL}/submissions/${encodeURIComponent(
+      token
+    )}?base64_encoded=false`;
+
+    const response = await axios.get(url, {
+      headers: {
+        "X-RapidAPI-Key": rapidApiKey,
+        "X-RapidAPI-Host": JUDGE0_API_HOST,
+      },
+    });
+
+    const data = response.data || {};
+
+    const output =
+      data.stdout || data.stderr || data.compile_output || null;
+
+    // Optional: status.id === 3 usually means success
+    // const isSuccess = data.status?.id === 3;
+
+    return res.status(200).json({
+      token: token,
+      output,
+      error: data.stderr || null,
+      status: data.status?.description || null,
+      raw: data,
+    });
+  } catch (error) {
+    console.error("Error calling Judge0 /submissions/{token}:", error.response?.data || error.message);
+
+    const status = error.response?.status || 500;
+    const data = error.response?.data || { message: error.message };
+
+    if (status === 429) {
+      return res.status(429).json({
+        message: "API limit exceeded. Try later.",
+      });
+    }
+
+    return res.status(status).json({
+      message: "Failed to fetch Judge0 result",
+      error: data,
+    });
   }
 };
 

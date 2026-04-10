@@ -4,6 +4,8 @@ import {
   saveCodeDraft,
   loadCodeDraft,
   deleteCodeDraft,
+  runCodeExecution,
+  getCodeExecutionResult,
 } from "../controllers/codeController.js";
 
 const router = express.Router();
@@ -38,5 +40,17 @@ router.get("/load/:problemId", loadCodeDraft);
  * Query params: ?language=javascript (optional - deletes all if not specified)
  */
 router.delete("/:problemId", deleteCodeDraft);
+
+/**
+ * POST /api/code/run
+ * Proxy to Judge0 to create a submission (optionally waiting for result)
+ */
+router.post("/run", runCodeExecution);
+
+/**
+ * GET /api/code/result/:token
+ * Fetch Judge0 result for an existing submission
+ */
+router.get("/result/:token", getCodeExecutionResult);
 
 export default router;
