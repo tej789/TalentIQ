@@ -288,6 +288,27 @@
   min-width: 0;
 }
 
+/* Tighter, better aligned layout on small screens */
+@media (max-width: 768px) {
+  .dashboard-container {
+    padding: 0 12px 48px;
+  }
+
+  .dashboard-main-content {
+    gap: 20px;
+  }
+
+  .dashboard-main-content > :first-child {
+    flex-basis: auto;
+    flex-shrink: 1;
+    width: 100%;
+  }
+
+  .dashboard-main-content > :last-child {
+    width: 100%;
+  }
+}
+
 /* Problem Description Styles */
 .problem-description-container {
   height: 100%;
@@ -1448,6 +1469,27 @@ button {
   flex: 1;
   overflow-y: auto;
   padding: 2rem 3rem;
+}
+
+/* Responsive adjustments for smaller screens */
+@media (max-width: 768px) {
+  .admin-layout {
+    flex-direction: column;
+    height: auto;
+    min-height: 100vh;
+  }
+
+  .admin-sidebar {
+    width: 100%;
+    border-right: none;
+    border-bottom: 1px solid var(--border-subtle);
+    padding: 1rem 0;
+  }
+
+  .admin-content {
+    padding: 1.5rem 1rem;
+    overflow-y: visible;
+  }
 }
 
 /* Admin Page Header */
