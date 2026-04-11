@@ -278,6 +278,8 @@ function CodeEditorPanel({
             fontFamily: 'Consolas, "Courier New", monospace',
             padding: { top: 16, bottom: 16 },
             lineHeight: 20,
+            // Hide red squiggles/validation underlines – correctness is judged by the backend
+            renderValidationDecorations: "off",
             scrollbar: {
               vertical: 'visible',
               horizontal: 'visible',

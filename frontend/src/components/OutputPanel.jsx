@@ -10,93 +10,49 @@ function OutputPanel({ output }) {
       <div 
         key={index} 
         className={`test-case-result ${isPassed ? 'passed' : 'failed'}`}
-        style={{
-          padding: '12px 16px',
-          marginBottom: '8px',
-          borderRadius: '8px',
-          backgroundColor: isPassed ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
-          border: `1px solid ${isPassed ? 'rgba(16, 185, 129, 0.3)' : 'rgba(239, 68, 68, 0.3)'}`,
-        }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+        <div className="test-case-header">
           {isPassed ? (
-            <CheckCircle size={18} style={{ color: '#10b981' }} />
+            <CheckCircle size={18} className="test-case-icon passed" />
           ) : hasError ? (
-            <AlertCircle size={18} style={{ color: '#ef4444' }} />
+            <AlertCircle size={18} className="test-case-icon failed" />
           ) : (
-            <XCircle size={18} style={{ color: '#ef4444' }} />
+            <XCircle size={18} className="test-case-icon failed" />
           )}
-          <span style={{ 
-            fontWeight: '600', 
-            color: isPassed ? '#10b981' : '#ef4444',
-            fontSize: '14px'
-          }}>
+          <span className={`test-case-title ${isPassed ? 'passed' : 'failed'}`}>
             Test Case {result.testCase}
           </span>
-          <span style={{
-            marginLeft: 'auto',
-            padding: '2px 8px',
-            borderRadius: '4px',
-            fontSize: '12px',
-            fontWeight: '500',
-            backgroundColor: isPassed ? '#10b981' : '#ef4444',
-            color: 'white'
-          }}>
+          <span className={`test-case-badge ${isPassed ? 'passed' : hasError ? 'error' : 'failed'}`}>
             {isPassed ? 'Passed' : hasError ? result.errorType?.toUpperCase() || 'ERROR' : 'Failed'}
           </span>
         </div>
         
-        <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
-          <div style={{ marginBottom: '4px' }}>
-            <span style={{ color: 'var(--text-muted)', marginRight: '8px' }}>Input:</span>
-            <code style={{ 
-              backgroundColor: 'var(--bg-tertiary)', 
-              padding: '2px 6px', 
-              borderRadius: '4px',
-              fontSize: '12px'
-            }}>
+        <div className="test-case-body">
+          <div className="test-case-row">
+            <span className="test-case-label">Input:</span>
+            <code className="test-case-code">
               {result.input}
             </code>
           </div>
           
-          <div style={{ marginBottom: '4px' }}>
-            <span style={{ color: 'var(--text-muted)', marginRight: '8px' }}>Expected:</span>
-            <code style={{ 
-              backgroundColor: 'var(--bg-tertiary)', 
-              padding: '2px 6px', 
-              borderRadius: '4px',
-              fontSize: '12px',
-              color: '#10b981'
-            }}>
+          <div className="test-case-row">
+            <span className="test-case-label">Expected:</span>
+            <code className="test-case-code expected">
               {result.expectedOutput}
             </code>
           </div>
           
           {!hasError && (
-            <div style={{ marginBottom: '4px' }}>
-              <span style={{ color: 'var(--text-muted)', marginRight: '8px' }}>Output:</span>
-              <code style={{ 
-                backgroundColor: 'var(--bg-tertiary)', 
-                padding: '2px 6px', 
-                borderRadius: '4px',
-                fontSize: '12px',
-                color: isPassed ? '#10b981' : '#ef4444'
-              }}>
+            <div className="test-case-row">
+              <span className="test-case-label">Output:</span>
+              <code className={`test-case-code ${isPassed ? 'output-passed' : 'output-failed'}`}>
                 {result.userOutput}
               </code>
             </div>
           )}
           
           {hasError && (
-            <div style={{ 
-              marginTop: '8px', 
-              padding: '8px', 
-              backgroundColor: 'rgba(239, 68, 68, 0.1)', 
-              borderRadius: '4px',
-              color: '#ef4444',
-              fontSize: '12px',
-              fontFamily: 'monospace'
-            }}>
+            <div className="test-case-error">
               {result.error}
             </div>
           )}

@@ -636,6 +636,122 @@
   line-height: 1.6;
 }
 
+/* Output Panel - Test Case Cards (session page) */
+.test-case-result {
+  padding: 12px 16px;
+  margin-bottom: 10px;
+  border-radius: 10px;
+  border: 1px solid var(--border-subtle);
+  background: radial-gradient(circle at top left, rgba(34, 197, 94, 0.08), transparent 60%);
+}
+
+.test-case-result.failed {
+  background: radial-gradient(circle at top left, rgba(239, 68, 68, 0.12), transparent 60%);
+  border-color: rgba(239, 68, 68, 0.4);
+}
+
+.test-case-result.passed {
+  border-color: rgba(34, 197, 94, 0.45);
+}
+
+.test-case-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.test-case-icon.passed {
+  color: #22c55e;
+}
+
+.test-case-icon.failed {
+  color: #ef4444;
+}
+
+.test-case-title {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.test-case-title.passed {
+  color: #22c55e;
+}
+
+.test-case-title.failed {
+  color: #f97373;
+}
+
+.test-case-badge {
+  margin-left: auto;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.test-case-badge.passed {
+  background-color: rgba(34, 197, 94, 0.15);
+  color: #22c55e;
+  border: 1px solid rgba(34, 197, 94, 0.55);
+}
+
+.test-case-badge.failed,
+.test-case-badge.error {
+  background-color: rgba(239, 68, 68, 0.15);
+  color: #f97373;
+  border: 1px solid rgba(239, 68, 68, 0.6);
+}
+
+.test-case-body {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.test-case-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.test-case-label {
+  min-width: 70px;
+  color: var(--text-muted);
+}
+
+.test-case-code {
+  background-color: var(--bg-tertiary);
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-family: 'Consolas', monospace;
+}
+
+.test-case-code.expected {
+  color: #22c55e;
+}
+
+.test-case-code.output-passed {
+  color: #22c55e;
+}
+
+.test-case-code.output-failed {
+  color: #ef4444;
+}
+
+.test-case-error {
+  margin-top: 8px;
+  padding: 8px 10px;
+  background-color: rgba(239, 68, 68, 0.12);
+  border-radius: 6px;
+  color: #fecaca;
+  font-size: 12px;
+  font-family: 'Consolas', monospace;
+}
+
 /* Resize Handle Styles */
 .resize-handle {
   background-color: var(--border-subtle);

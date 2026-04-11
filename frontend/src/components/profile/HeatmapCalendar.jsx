@@ -390,39 +390,43 @@ const HeatmapCalendar = ({ heatmap, color = "#22c55e", onYearChange, selectedYea
       </div>
 
       {/* Heatmap Grid Container - LeetCode Style */}
-      <div className="flex gap-2">
-        {monthlyWeeks.map((monthData, monthIdx) => (
-          <div key={monthIdx} className="flex flex-col">
-            {/* Month Label */}
-            <div className="text-xs text-gray-400 mb-2 ml-1">
-              {monthData.name}
+      <div className="overflow-x-auto">
+        <div className="flex gap-2 min-w-max">
+          {monthlyWeeks.map((monthData, monthIdx) => (
+            <div key={monthIdx} className="flex flex-col">
+              {/* Month Label */}
+              <div className="text-xs text-gray-400 mb-2 ml-1">
+                {monthData.name}
+              </div>
+              {/* Weeks for the month */}
+              <div className="flex gap-1">
+                {monthData.weeks.map((week, weekIdx) => (
+                  <div key={weekIdx} className="flex flex-col gap-1">
+                    {week.map((day, dayIdx) => (
+                      <div
+                        key={dayIdx}
+                        className={`w-[10px] h-[10px] rounded-[2px] transition-all duration-100 ${
+                          day.date 
+                            ? "cursor-pointer hover:ring-1 hover:ring-white/40 hover:ring-offset-0 hover:scale-110" 
+                            : "invisible"
+                        }`}
+                        style={{ 
+                          backgroundColor: day.date ? getColor(day.level) : "transparent",
+                          border: day.date && day.level === 0 ? '1px solid rgba(255,255,255,0.06)' : 'none'
+                        }}
+                        onMouseEnter={(e) => handleMouseEnter(day, e)}
+                        onMouseLeave={handleMouseLeave}
+                      />
+                    ))}
+                  </div>
+                ))}
+              </div>
             </div>
-            {/* Weeks for the month */}
-            <div className="flex gap-1">
-              {monthData.weeks.map((week, weekIdx) => (
-                <div key={weekIdx} className="flex flex-col gap-1">
-                  {week.map((day, dayIdx) => (
-                    <div
-                      key={dayIdx}
-                      className={`w-[10px] h-[10px] rounded-[2px] transition-all duration-100 ${
-                        day.date 
-                          ? "cursor-pointer hover:ring-1 hover:ring-white/40 hover:ring-offset-0 hover:scale-110" 
-                          : "invisible"
-                      }`}
-                      style={{ 
-                        backgroundColor: day.date ? getColor(day.level) : "transparent",
-                        border: day.date && day.level === 0 ? '1px solid rgba(255,255,255,0.06)' : 'none'
-                      }}
-                      onMouseEnter={(e) => handleMouseEnter(day, e)}
-                      onMouseLeave={handleMouseLeave}
-                    />
-                  ))}
-                </div>
-              ))}
-            </div>
-          </div>
-        ))}
-      </div>      {/* Tooltip */}
+          ))}
+        </div>
+      </div>
+
+      {/* Tooltip */}
       {tooltip.visible && tooltip.data && (
         <div
           className="fixed z-50 bg-[#2d2d2d] text-white px-3 py-2 rounded-lg text-xs border border-gray-600 pointer-events-none shadow-2xl"
