@@ -1261,6 +1261,25 @@ button {
     margin-left: auto;
     margin-right: auto;
   }
+
+  /* Make all recent session cards consistent height on mobile */
+  .recent-session-card {
+    min-height: 170px;
+    display: flex;
+  }
+
+  .recent-card-content {
+    height: 100%;
+    overflow: hidden;
+  }
+
+  .recent-card-title {
+    white-space: normal;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
 }
 
 .recent-card-meta {
