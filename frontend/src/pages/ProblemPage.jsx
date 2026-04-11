@@ -509,10 +509,10 @@ function ProblemPage() {
   }
 
   return (
-    <div className="problem-page">
+    <div className="problem-page h-screen bg-root flex flex-col">
       <Navbar />
 
-      <div className="problem-page-content">
+      <div className="problem-page-content flex-1 flex flex-col">
         {/* Desktop layout */}
         <div className="hidden md:block h-full">
           <PanelGroup direction="horizontal">

@@ -68,87 +68,66 @@ function OutputPanel({ output }) {
     const isAccepted = output.verdict === 'Accepted';
     
     return (
-      <div style={{
-        padding: '16px',
-        marginBottom: '16px',
-        borderRadius: '8px',
-        backgroundColor: isAccepted ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)',
-        border: `2px solid ${isAccepted ? '#10b981' : '#ef4444'}`,
-        textAlign: 'center'
-      }}>
-        <div style={{ 
-          display: 'flex', 
-          alignItems: 'center', 
-          justifyContent: 'center', 
-          gap: '8px',
-          marginBottom: '8px'
-        }}>
+      <div className={`test-case-result ${isAccepted ? 'passed' : 'failed'}`}>
+        <div className="test-case-header">
           {isAccepted ? (
-            <CheckCircle size={24} style={{ color: '#10b981' }} />
+            <CheckCircle size={20} className="test-case-icon passed" />
           ) : output.verdict === 'Time Limit Exceeded' ? (
-            <Clock size={24} style={{ color: '#ef4444' }} />
+            <Clock size={20} className="test-case-icon failed" />
           ) : output.verdict === 'Compilation Error' ? (
-            <Code size={24} style={{ color: '#ef4444' }} />
+            <Code size={20} className="test-case-icon failed" />
           ) : (
-            <XCircle size={24} style={{ color: '#ef4444' }} />
+            <XCircle size={20} className="test-case-icon failed" />
           )}
-          <span style={{ 
-            fontSize: '20px', 
-            fontWeight: '700',
-            color: isAccepted ? '#10b981' : '#ef4444'
-          }}>
+
+          <span className={`test-case-title ${isAccepted ? 'passed' : 'failed'}`}>
             {output.verdict}
           </span>
+
+          <span className={`test-case-badge ${isAccepted ? 'passed' : 'failed'}`}>
+            {isAccepted ? 'Passed' : 'Failed'}
+          </span>
         </div>
-        
-        <div style={{ 
-          fontSize: '14px', 
-          color: 'var(--text-secondary)'
-        }}>
-          {output.passedCount}/{output.totalCount} test cases passed
-        </div>
-        
-        {/* Show failed test case details */}
-        {output.failedTestCase && (
-          <div style={{
-            marginTop: '16px',
-            padding: '12px',
-            backgroundColor: 'var(--bg-tertiary)',
-            borderRadius: '6px',
-            textAlign: 'left'
-          }}>
-            <div style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '8px' }}>
-              Failed on Test Case {output.failedTestCase.testCaseNumber}:
-            </div>
-            <div style={{ fontSize: '13px', marginBottom: '4px' }}>
-              <span style={{ color: 'var(--text-muted)' }}>Input: </span>
-              <code style={{ color: 'var(--text-primary)' }}>{output.failedTestCase.input}</code>
-            </div>
-            <div style={{ fontSize: '13px', marginBottom: '4px' }}>
-              <span style={{ color: 'var(--text-muted)' }}>Expected: </span>
-              <code style={{ color: '#10b981' }}>{output.failedTestCase.expectedOutput}</code>
-            </div>
-            {output.failedTestCase.userOutput && (
-              <div style={{ fontSize: '13px', marginBottom: '4px' }}>
-                <span style={{ color: 'var(--text-muted)' }}>Your Output: </span>
-                <code style={{ color: '#ef4444' }}>{output.failedTestCase.userOutput}</code>
-              </div>
-            )}
-            {output.failedTestCase.error && (
-              <div style={{ 
-                marginTop: '8px',
-                padding: '8px',
-                backgroundColor: 'rgba(239, 68, 68, 0.1)',
-                borderRadius: '4px',
-                color: '#ef4444',
-                fontSize: '12px',
-                fontFamily: 'monospace'
-              }}>
-                {output.failedTestCase.error}
-              </div>
-            )}
+
+        <div className="test-case-body">
+          <div className="test-case-row">
+            <span className="test-case-label">Summary:</span>
+            <span>
+              {output.passedCount}/{output.totalCount} test cases passed
+            </span>
           </div>
-        )}
+
+          {/* Show failed test case details */}
+          {output.failedTestCase && (
+            <>
+              <div className="test-case-row">
+                <span className="test-case-label">Input:</span>
+                <code className="test-case-code">
+                  {output.failedTestCase.input}
+                </code>
+              </div>
+              <div className="test-case-row">
+                <span className="test-case-label">Expected:</span>
+                <code className="test-case-code expected">
+                  {output.failedTestCase.expectedOutput}
+                </code>
+              </div>
+              {output.failedTestCase.userOutput && (
+                <div className="test-case-row">
+                  <span className="test-case-label">Your Output:</span>
+                  <code className="test-case-code output-failed">
+                    {output.failedTestCase.userOutput}
+                  </code>
+                </div>
+              )}
+              {output.failedTestCase.error && (
+                <div className="test-case-error">
+                  {output.failedTestCase.error}
+                </div>
+              )}
+            </>
+          )}
+        </div>
       </div>
     );
   };
