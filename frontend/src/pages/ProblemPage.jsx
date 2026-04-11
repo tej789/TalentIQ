@@ -512,10 +512,9 @@ function ProblemPage() {
     <div className="problem-page h-screen bg-root flex flex-col">
       <Navbar />
 
-      <div className="problem-page-content flex-1 flex flex-col">
-        {/* Desktop layout */}
-        <div className="hidden md:block h-full">
-          <PanelGroup direction="horizontal">
+      {/* Desktop layout */}
+      <div className="flex-1 hidden md:block">
+        <PanelGroup direction="horizontal">
             {/* left panel- problem desc */}
             <Panel defaultSize={40} minSize={30}>
               <ProblemDescription
@@ -564,9 +563,9 @@ function ProblemPage() {
           </PanelGroup>
         </div>
 
-        {/* Mobile layout: bottom tabs for Description / Editor / Output */}
-        <div className="flex-1 md:hidden flex flex-col">
-          <div className="flex-1 overflow-hidden relative">
+      {/* Mobile layout: bottom tabs for Description / Editor / Output */}
+      <div className="flex-1 md:hidden flex flex-col min-h-0">
+        <div className="flex-1 overflow-hidden relative min-h-0">
             {/* Description tab */}
             <div className={`h-full overflow-y-auto px-4 pb-4 space-y-4 ${mobileTab !== "description" ? "hidden" : ""}`}>
               <div className="bg-surface rounded-lg p-4 border border-border-subtle">
@@ -637,18 +636,17 @@ function ProblemPage() {
             </div>
           </div>
 
-          {/* Bottom tab bar */}
-          <div className="mobile-tab-bar">
-            {["description", "editor", "output"].map((tab) => (
-              <button
-                key={tab}
-                onClick={() => setMobileTab(tab)}
-                className={`mobile-tab ${mobileTab === tab ? "mobile-tab-active" : ""}`}
-              >
-                {tab.charAt(0).toUpperCase() + tab.slice(1)}
-              </button>
-            ))}
-          </div>
+        {/* Bottom tab bar */}
+        <div className="mobile-tab-bar">
+          {["description", "editor", "output"].map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setMobileTab(tab)}
+              className={`mobile-tab ${mobileTab === tab ? "mobile-tab-active" : ""}`}
+            >
+              {tab.charAt(0).toUpperCase() + tab.slice(1)}
+            </button>
+          ))}
         </div>
       </div>
     </div>
