@@ -9,7 +9,7 @@ function AllSessionsPage() {
   const sessions = recentSessionsData?.sessions || [];
 
   return (
-    <div className="min-h-screen bg-root">
+    <div className="min-h-screen bg-root all-sessions-page">
       <Navbar />
       
       <div className="dashboard-container py-12 px-6">
