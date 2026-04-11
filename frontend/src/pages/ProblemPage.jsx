@@ -24,6 +24,7 @@ function ProblemPage() {
   const [currentProblem, setCurrentProblem] = useState(null);
   const [allProblems, setAllProblems] = useState([]);
   const [selectedLanguage, setSelectedLanguage] = useState("javascript");
+  const [mobileTab, setMobileTab] = useState("description");
   
   // Store code for ALL languages separately (key: language, value: code)
   const [allLanguageCode, setAllLanguageCode] = useState({
@@ -512,54 +513,143 @@ function ProblemPage() {
       <Navbar />
 
       <div className="problem-page-content">
-        <PanelGroup direction="horizontal">
-          {/* left panel- problem desc */}
-          <Panel defaultSize={40} minSize={30}>
-            <ProblemDescription
-              problem={currentProblem}
-              currentProblemId={currentProblemId}
-              onProblemChange={handleProblemChange}
-              allProblems={(allProblems || []).map((p) => ({ 
-                id: p.slug || p._id, 
-                title: p.title, 
-                difficulty: p.difficulty 
-              }))}
-              isSolved={isSolved}
-            />
-          </Panel>
+        {/* Desktop layout */}
+        <div className="hidden md:block h-full">
+          <PanelGroup direction="horizontal">
+            {/* left panel- problem desc */}
+            <Panel defaultSize={40} minSize={30}>
+              <ProblemDescription
+                problem={currentProblem}
+                currentProblemId={currentProblemId}
+                onProblemChange={handleProblemChange}
+                allProblems={(allProblems || []).map((p) => ({ 
+                  id: p.slug || p._id, 
+                  title: p.title, 
+                  difficulty: p.difficulty 
+                }))}
+                isSolved={isSolved}
+              />
+            </Panel>
 
-          <PanelResizeHandle className="resize-handle resize-handle-horizontal" />
+            <PanelResizeHandle className="resize-handle resize-handle-horizontal" />
 
-          {/* right panel- code editor & output */}
-          <Panel defaultSize={60} minSize={30}>
-            <PanelGroup direction="vertical">
-              {/* Top panel - Code editor */}
-              <Panel defaultSize={70} minSize={30}>
-                <CodeEditorPanel
-                  selectedLanguage={selectedLanguage}
-                  code={allLanguageCode[selectedLanguage] || ""}
-                  allLanguageCode={allLanguageCode}
-                  isRunning={isRunning}
-                  isSaving={isSaving}
-                  isAutoSaving={isAutoSaving}
-                  lastSaved={lastSaved}
-                  onLanguageChange={handleLanguageChange}
-                  onCodeChange={handleCodeChange}
-                  onRunCode={handleRunCode}
-                  onSubmitCode={handleSubmitCode}
-                />
-              </Panel>
+            {/* right panel- code editor & output */}
+            <Panel defaultSize={60} minSize={30}>
+              <PanelGroup direction="vertical">
+                {/* Top panel - Code editor */}
+                <Panel defaultSize={70} minSize={30}>
+                  <CodeEditorPanel
+                    selectedLanguage={selectedLanguage}
+                    code={allLanguageCode[selectedLanguage] || ""}
+                    allLanguageCode={allLanguageCode}
+                    isRunning={isRunning}
+                    isSaving={isSaving}
+                    isAutoSaving={isAutoSaving}
+                    lastSaved={lastSaved}
+                    onLanguageChange={handleLanguageChange}
+                    onCodeChange={handleCodeChange}
+                    onRunCode={handleRunCode}
+                    onSubmitCode={handleSubmitCode}
+                  />
+                </Panel>
 
-              <PanelResizeHandle className="resize-handle resize-handle-vertical" />
+                <PanelResizeHandle className="resize-handle resize-handle-vertical" />
 
-              {/* Bottom panel - Output Panel*/}
+                {/* Bottom panel - Output Panel*/}
+                <Panel defaultSize={30} minSize={30}>
+                  <OutputPanel output={output} />
+                </Panel>
+              </PanelGroup>
+            </Panel>
+          </PanelGroup>
+        </div>
 
-              <Panel defaultSize={30} minSize={30}>
-                <OutputPanel output={output} />
-              </Panel>
-            </PanelGroup>
-          </Panel>
-        </PanelGroup>
+        {/* Mobile layout: bottom tabs for Description / Editor / Output */}
+        <div className="flex-1 md:hidden flex flex-col">
+          <div className="flex-1 overflow-hidden relative">
+            {/* Description tab */}
+            <div className={`h-full overflow-y-auto px-4 pb-4 space-y-4 ${mobileTab !== "description" ? "hidden" : ""}`}>
+              <div className="bg-surface rounded-lg p-4 border border-border-subtle">
+                <div className="flex items-center justify-between mb-2">
+                  <h1 className="text-lg font-semibold text-text-primary truncate">
+                    {currentProblem.title}
+                  </h1>
+                  <span className={`px-2 py-0.5 rounded text-xs font-medium ${
+                    currentProblem.difficulty === "Easy"
+                      ? "bg-green-500/20 text-green-400"
+                      : currentProblem.difficulty === "Medium"
+                      ? "bg-yellow-500/20 text-yellow-400"
+                      : "bg-red-500/20 text-red-400"
+                  }`}>
+                    {currentProblem.difficulty}
+                  </span>
+                </div>
+                <p className="text-xs text-text-secondary mb-3">
+                  {typeof currentProblem.description === "string"
+                    ? currentProblem.description
+                    : currentProblem.description?.text}
+                </p>
+              </div>
+
+              {currentProblem.examples?.map((example, idx) => (
+                <div key={idx} className="bg-surface rounded-lg p-3 border border-border-subtle">
+                  <p className="text-xs font-medium mb-1">Example {idx + 1}</p>
+                  <div className="bg-bg-elevated rounded p-2 font-mono text-[11px] space-y-1">
+                    <div>Input: {example.input}</div>
+                    <div>Output: {example.output}</div>
+                    {example.explanation && <div>Explanation: {example.explanation}</div>}
+                  </div>
+                </div>
+              ))}
+
+              {currentProblem.constraints && currentProblem.constraints.length > 0 && (
+                <div className="bg-surface rounded-lg p-3 border border-border-subtle">
+                  <p className="text-xs font-medium mb-1">Constraints</p>
+                  <ul className="list-disc pl-4 text-[11px] text-text-secondary space-y-1">
+                    {currentProblem.constraints.map((c, idx) => (
+                      <li key={idx}>{c}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+
+            {/* Editor tab */}
+            <div className={`h-full flex flex-col ${mobileTab !== "editor" ? "hidden" : ""}`}>
+              <CodeEditorPanel
+                selectedLanguage={selectedLanguage}
+                code={allLanguageCode[selectedLanguage] || ""}
+                allLanguageCode={allLanguageCode}
+                isRunning={isRunning}
+                isSaving={isSaving}
+                isAutoSaving={isAutoSaving}
+                lastSaved={lastSaved}
+                onLanguageChange={handleLanguageChange}
+                onCodeChange={handleCodeChange}
+                onRunCode={handleRunCode}
+                onSubmitCode={handleSubmitCode}
+              />
+            </div>
+
+            {/* Output tab */}
+            <div className={`h-full flex flex-col ${mobileTab !== "output" ? "hidden" : ""}`}>
+              <OutputPanel output={output} />
+            </div>
+          </div>
+
+          {/* Bottom tab bar */}
+          <div className="mobile-tab-bar">
+            {["description", "editor", "output"].map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setMobileTab(tab)}
+                className={`mobile-tab ${mobileTab === tab ? "mobile-tab-active" : ""}`}
+              >
+                {tab.charAt(0).toUpperCase() + tab.slice(1)}
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   );
