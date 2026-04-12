@@ -65,6 +65,8 @@
       'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    /* Prevent tiny horizontal scroll gaps on mobile */
+    overflow-x: hidden;
   }
 
   code, pre {
@@ -901,6 +903,44 @@ button {
 
 .btn-create-session:hover .arrow-icon {
   transform: translateX(4px);
+}
+
+/* Compact mobile layout for dashboard hero */
+@media (max-width: 640px) {
+  .welcome-container {
+    padding: 40px 16px 28px;
+  }
+
+  .welcome-content {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 24px;
+  }
+
+  .welcome-header {
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .welcome-title {
+    font-size: 22px;
+  }
+
+  .welcome-subtitle {
+    font-size: 14px;
+    margin-left: 0;
+    margin-top: 4px;
+  }
+
+  .btn-create-session {
+    padding: 12px 22px;
+    border-radius: 10px;
+    box-shadow: 0 12px 32px rgba(59, 130, 246, 0.35);
+  }
+
+  .navbar-container {
+    padding: 12px;
+  }
 }
 
 /* Stats Cards */
