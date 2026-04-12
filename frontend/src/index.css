@@ -204,6 +204,38 @@
 }
 
 @media (max-width: 640px) {
+  .navbar-container {
+    padding: 8px 12px;
+  }
+
+  .logo-icon {
+    width: 32px;
+    height: 32px;
+  }
+
+  .icon-size {
+    width: 18px;
+    height: 18px;
+  }
+
+  .logo-title {
+    font-size: 16px;
+  }
+
+  .logo-subtitle {
+    font-size: 11px;
+  }
+
+  .navbar-actions {
+    margin-left: 8px;
+    margin-top: 0;
+    gap: 4px;
+  }
+
+  .theme-toggle-btn {
+    padding: 6px;
+  }
+
   .nav-text {
     display: none;
   }

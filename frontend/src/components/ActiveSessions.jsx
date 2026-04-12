@@ -211,29 +211,29 @@ function ActiveSessions({ sessions, isLoading, isUserInSession, searchQuery, onS
   };
 
   return (
-    <div className="lg:col-span-2 card bg-base-100 border-2 border-primary/20 hover:border-primary/30">
+    <div className="lg:col-span-2 card bg-base-100 border-2 border-primary/20 hover:border-primary/30 text-sm sm:text-base">
       <div className="card-body p-0">
         {/* HEADERS SECTION */}
-        <div className="flex items-center justify-between px-6 py-4">
+        <div className="flex items-center justify-between px-4 py-3 sm:px-6 sm:py-4">
           {/* TITLE AND ICON */}
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-gradient-to-br from-primary to-secondary rounded-xl">
-              <ZapIcon className="size-5" />
+            <div className="p-1.5 sm:p-2 bg-gradient-to-br from-primary to-secondary rounded-xl">
+              <ZapIcon className="size-4 sm:size-5" />
             </div>
-            <h2 className="text-xl font-bold">Live Sessions</h2>
+            <h2 className="text-lg sm:text-xl font-bold">Live Sessions</h2>
           </div>
 
-          <div className="flex items-center gap-2 mr-6">
-            <div className="size-2 bg-success rounded-full animate-pulse" />
+          <div className="flex items-center gap-1.5 sm:gap-2 mr-2 sm:mr-6">
+            <div className="size-1.5 sm:size-2 bg-success rounded-full animate-pulse" />
             <span className="text-sm font-medium text-success opacity-80">
               {safeSessions.length} active
             </span>
           </div>
         </div>
 
-        <div className="px-6 pb-6">
+        <div className="px-4 pb-4 sm:px-6 sm:pb-6">
           {/* SEARCH BAR */}
-          <div className="relative mb-4">
+          <div className="relative mb-3 sm:mb-4">
             <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 size-4 opacity-50" />
             <input
               type="text"
@@ -260,11 +260,11 @@ function ActiveSessions({ sessions, isLoading, isUserInSession, searchQuery, onS
                     key={session._id}
                     className="card bg-base-200 border-2 border-base-300 hover:border-primary/50"
                   >
-                    <div className="flex items-center justify-between gap-4 p-4">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 p-3 sm:p-4">
                       {/* LEFT SIDE */}
                       <div className="flex items-center gap-4 flex-1">
-                        <div className="relative size-12 rounded-lg bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
-                          <Code2Icon className="size-6 text-white" />
+                        <div className="relative size-10 sm:size-12 rounded-lg bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
+                          <Code2Icon className="size-5 sm:size-6 text-white" />
                           <div className="absolute -top-1 -right-1 size-3 bg-success rounded-full border-2 border-base-200" />
                         </div>
 
@@ -305,11 +305,13 @@ function ActiveSessions({ sessions, isLoading, isUserInSession, searchQuery, onS
                       </div>
 
                       {isFull ? (
-                        <button className="btn btn-disabled btn-xs">Full</button>
+                        <button className="btn btn-disabled btn-xs px-3 sm:px-4 self-stretch sm:self-auto">
+                          Full
+                        </button>
                       ) : (
                         <button
                           onClick={() => handleJoinClick(session)}
-                          className="btn btn-primary btn-xs gap-1"
+                          className="btn btn-primary btn-xs gap-1 px-3 sm:px-4 self-stretch sm:self-auto"
                         >
                           {isUserInSession(session) ? "Rejoin" : "Join"}
                           <ArrowRightIcon className="size-3" />
