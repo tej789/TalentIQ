@@ -44,43 +44,26 @@ function HomePage() {
       </nav>
 
       {/* HERO SECTION */}
-      <div className="max-w-7xl mx-auto px-4 py-20">
+      <main className="max-w-7xl mx-auto px-4 py-16 lg:py-24">
         <div className="grid lg:grid-cols-2 gap-12 items-center">
           {/* LEFT CONTENT */}
-          <div className="space-y-8">
-            <div className="bg-accent-soft text-accent-primary px-3 py-1 rounded-md text-sm font-medium inline-flex items-center gap-2">
+          <section className="space-y-8">
+            <div className="bg-accent-soft text-accent-primary px-3 py-1 rounded-full text-xs font-medium inline-flex items-center gap-2 w-fit border border-accent-primary/20">
               <ZapIcon className="size-4" />
-              Real-time Collaboration
+              Built for technical interviews & pair programming
             </div>
 
-            <h1 className="text-4xl lg:text-5xl font-semibold leading-tight">
-              <span className="text-text-primary">
-                Code Together,
-              </span>
+            <h1 className="text-4xl lg:text-5xl font-semibold leading-tight text-text-primary">
+              Code Together.
               <br />
-              <span className="text-text-primary">Learn Together</span>
+              Ship Better Talent Decisions.
             </h1>
 
             <p className="text-lg text-text-secondary leading-relaxed max-w-xl">
-              The ultimate platform for collaborative coding interviews and pair programming.
-              Connect face-to-face, code in real-time, and ace your technical interviews.
+              Talent IQ is a modern collaboration workspace for live coding rounds, pair
+              programming sessions, and mock interviews. Meet by video, share an editor,
+              and focus on problem solving instead of tools.
             </p>
-
-            {/* FEATURE PILLS */}
-            <div className="flex flex-wrap gap-3">
-              <div className="border border-accent-primary/20 text-text-secondary px-3 py-1 rounded-md text-sm font-medium inline-flex items-center gap-2">
-                <CheckIcon className="size-4 text-green-400" />
-                Live Video Chat
-              </div>
-              <div className="border border-accent-primary/20 text-text-secondary px-3 py-1 rounded-md text-sm font-medium inline-flex items-center gap-2">
-                <CheckIcon className="size-4 text-green-400" />
-                Code Editor
-              </div>
-              <div className="border border-accent-primary/20 text-text-secondary px-3 py-1 rounded-md text-sm font-medium inline-flex items-center gap-2">
-                <CheckIcon className="size-4 text-green-400" />
-                Multi-Language
-              </div>
-            </div>
 
             {/* CTA Buttons */}
             <div className="flex flex-wrap gap-4">
@@ -93,83 +76,136 @@ function HomePage() {
 
               <button className="border border-accent-primary text-accent-primary hover:bg-accent-soft px-6 py-3 rounded-lg font-semibold text-sm transition-colors inline-flex items-center gap-2">
                 <VideoIcon className="size-5" />
-                Watch Demo
+                View product tour
               </button>
             </div>
 
-            {/* STATS */}
-            <div className="bg-surface border border-border-subtle rounded-lg p-4 grid grid-cols-1 lg:grid-cols-3 gap-4">
-              <div className="text-center">
-                <div className="text-accent-primary font-semibold text-2xl">10K+</div>
-                <div className="text-text-secondary text-sm">Active Users</div>
+            {/* WHO IT'S FOR */}
+            <div className="grid sm:grid-cols-3 gap-3 max-w-xl">
+              <div className="bg-surface border border-border-subtle rounded-lg px-3 py-3 flex items-center gap-2 text-sm">
+                <UsersIcon className="size-4 text-accent-primary" />
+                <span className="text-text-secondary">Hiring managers</span>
               </div>
-              <div className="text-center">
-                <div className="text-accent-primary font-semibold text-2xl">50K+</div>
-                <div className="text-text-secondary text-sm">Sessions</div>
+              <div className="bg-surface border border-border-subtle rounded-lg px-3 py-3 flex items-center gap-2 text-sm">
+                <Code2Icon className="size-4 text-accent-primary" />
+                <span className="text-text-secondary">Engineering teams</span>
               </div>
-              <div className="text-center">
-                <div className="text-accent-primary font-semibold text-2xl">99.9%</div>
-                <div className="text-text-secondary text-sm">Uptime</div>
+              <div className="bg-surface border border-border-subtle rounded-lg px-3 py-3 flex items-center gap-2 text-sm">
+                <SparklesIcon className="size-4 text-accent-primary" />
+                <span className="text-text-secondary">Candidates & learners</span>
               </div>
             </div>
-          </div>
+          </section>
 
-          {/* RIGHT IMAGE */}
-          <img
-            src="/hero.png"
-            alt="CodeCollab Platform"
-            className="w-full h-auto rounded-lg shadow-md border border-border-subtle"
-          />
+          {/* RIGHT VISUAL: SIMPLE EDITOR PREVIEW */}
+          <section className="relative">
+            <div className="absolute -inset-4 bg-accent-primary/15 blur-3xl rounded-3xl pointer-events-none" />
+
+            <div className="relative bg-gradient-to-br from-surface to-root border border-border-subtle/80 rounded-3xl shadow-xl p-6 lg:p-8 space-y-5">
+              {/* Header */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="size-9 rounded-xl bg-accent-soft flex items-center justify-center">
+                    <Code2Icon className="size-5 text-accent-primary" />
+                  </div>
+                  <div>
+                    <p className="text-[11px] text-text-secondary uppercase tracking-[0.16em] font-semibold">
+                      Live coding workspace
+                    </p>
+                    <p className="text-sm font-medium text-text-primary">Talent IQ session</p>
+                  </div>
+                </div>
+
+                <span className="px-3 py-1 rounded-full bg-root/80 text-text-secondary text-xs border border-border-subtle">
+                  Secure · Real-time
+                </span>
+              </div>
+
+              {/* Minimal code editor mock */}
+              <div className="bg-root/70 border border-border-subtle rounded-2xl p-4 text-xs font-mono text-text-secondary space-y-3">
+                <div className="flex items-center justify-between mb-1">
+                  <div className="flex items-center gap-1.5">
+                    <span className="size-2.5 rounded-full bg-red-500/70" />
+                    <span className="size-2.5 rounded-full bg-amber-400/70" />
+                    <span className="size-2.5 rounded-full bg-emerald-500/70" />
+                  </div>
+                  <span className="text-[11px] text-text-secondary/80">problem.js</span>
+                </div>
+                <div className="space-y-1">
+                  <p><span className="text-accent-primary">function</span> solve() &#123;</p>
+                  <p className="pl-4 text-text-secondary/80">// collaborate on the solution…</p>
+                  <p className="pl-4">return <span className="text-emerald-400">"pass"</span>;</p>
+                  <p>&#125;</p>
+                </div>
+              </div>
+
+              {/* Short capability row */}
+              <div className="flex flex-wrap gap-2 text-xs">
+                <div className="bg-surface border border-border-subtle rounded-full px-3 py-1.5 flex items-center gap-2">
+                  <VideoIcon className="size-4 text-accent-primary" />
+                  <span className="text-text-secondary">Video built in</span>
+                </div>
+                <div className="bg-surface border border-border-subtle rounded-full px-3 py-1.5 flex items-center gap-2">
+                  <Code2Icon className="size-4 text-accent-primary" />
+                  <span className="text-text-secondary">Shared editor</span>
+                </div>
+                <div className="bg-surface border border-border-subtle rounded-full px-3 py-1.5 flex items-center gap-2">
+                  <UsersIcon className="size-4 text-accent-primary" />
+                  <span className="text-text-secondary">Multi-user sessions</span>
+                </div>
+              </div>
+            </div>
+          </section>
         </div>
-      </div>
+      </main>
 
       {/* FEATURES SECTION */}
-      <div className="max-w-7xl mx-auto px-4 py-20">
+      <section className="max-w-7xl mx-auto px-4 pb-20">
         <div className="text-center mb-16">
           <h2 className="text-3xl font-semibold mb-4">
             Everything You Need to <span className="text-accent-primary font-mono">Succeed</span>
           </h2>
           <p className="text-lg text-text-secondary max-w-2xl mx-auto">
-            Powerful features designed to make your coding interviews seamless and productive
+            Powerful features designed to keep every live session smooth, focused, and fair
           </p>
         </div>
 
         {/* FEATURES GRID */}
         <div className="grid md:grid-cols-3 gap-8">
           {/* Feature 1 */}
-          <div className="bg-surface border border-border-subtle rounded-lg p-6 text-center">
+          <div className="bg-surface/80 border border-border-subtle/80 rounded-2xl p-6 text-center transition-colors">
             <div className="size-16 bg-accent-soft rounded-lg flex items-center justify-center mb-4 mx-auto">
               <VideoIcon className="size-8 text-accent-primary" />
             </div>
             <h3 className="font-semibold text-text-primary mb-2">HD Video Call</h3>
             <p className="text-text-secondary">
-              Crystal clear video and audio for seamless communication during interviews
+              Stable, low-latency audio and video that works reliably across teams and regions
             </p>
           </div>
 
           {/* Feature 2 */}
-          <div className="bg-surface border border-border-subtle rounded-lg p-6 text-center">
+          <div className="bg-surface/80 border border-border-subtle/80 rounded-2xl p-6 text-center transition-colors">
             <div className="size-16 bg-accent-soft rounded-lg flex items-center justify-center mb-4 mx-auto">
               <Code2Icon className="size-8 text-accent-primary" />
             </div>
             <h3 className="font-semibold text-text-primary mb-2">Live Code Editor</h3>
             <p className="text-text-secondary">
-              Collaborate in real-time with syntax highlighting and multiple language support
+              Collaborate in real-time with syntax highlighting, multiple languages, and saved layouts
             </p>
           </div>
 
           {/* Feature 3 */}
-          <div className="bg-surface border border-border-subtle rounded-lg p-6 text-center">
+          <div className="bg-surface/80 border border-border-subtle/80 rounded-2xl p-6 text-center transition-colors">
             <div className="size-16 bg-accent-soft rounded-lg flex items-center justify-center mb-4 mx-auto">
               <UsersIcon className="size-8 text-accent-primary" />
             </div>
             <h3 className="font-semibold text-text-primary mb-2">Easy Collaboration</h3>
             <p className="text-text-secondary">
-              Share your screen, discuss solutions, and learn from each other in real-time
+              Chat, notes, and recording in one place so your panel and candidates stay aligned
             </p>
           </div>
         </div>
-      </div>
+      </section>
     </div>
   );
 }
